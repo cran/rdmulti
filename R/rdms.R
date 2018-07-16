@@ -1,6 +1,6 @@
 ###################################################################
 # rdms: analysis of RD designs with multiple scores
-# !version 0.1 11-Apr-2018
+# !version 0.2 12-Jul-2018
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -131,13 +131,13 @@ rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
 
       rdr.tmp = rdrobust::rdrobust(yc,xc,h=h,b=b,p=p,kernel=kernel,fuzzy=fuzzy)
 
-      Nh = c(Nh,rdr.tmp$N_h_l+rdr.tmp$N_h_r)
+      Nh = c(Nh,rdr.tmp$Nh[1]+rdr.tmp$Nh[2])
       B = c(B,rdr.tmp$Estimate[2])
       V[c,c] = (rdr.tmp$se[3])^2
       Coefs = c(Coefs,rdr.tmp$Estimate[1])
       CI[,c] = c(rdr.tmp$ci[3,])
       Pv = c(Pv,rdr.tmp$pv[3])
-      H = c(H,rdr.tmp$h_l)
+      H = c(H,rdr.tmp$bws[1,1])
 
       c.disp = c(c.disp,round(C[c],2))
 
@@ -171,13 +171,13 @@ rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
 
       rdr.tmp = rdrobust::rdrobust(yc,xc,h=h,b=b,p=p,kernel=kernel,fuzzy=fuzzy)
 
-      Nh = c(Nh,rdr.tmp$N_h_l+rdr.tmp$N_h_r)
+      Nh = c(Nh,rdr.tmp$Nh[1]+rdr.tmp$Nh[2])
       B = c(B,rdr.tmp$Estimate[2])
       V[c,c] = (rdr.tmp$se[3])^2
       Coefs = c(Coefs,rdr.tmp$Estimate[1])
       CI[,c] = c(rdr.tmp$ci[3,])
       Pv = c(Pv,rdr.tmp$pv[3])
-      H = c(H,rdr.tmp$h_l)
+      H = c(H,rdr.tmp$bws[1,1])
 
       c.disp = c(c.disp,paste0('(',round(C[c],2),',',round(C2[c],2),')'))
 
@@ -196,13 +196,13 @@ rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
 
     rdr = eval(parse(text=aux1))
 
-    Nh = c(Nh,rdr$N_h_l+rdr$N_h_r)
+    Nh = c(Nh,rdr$Nh[1]+rdr$Nh[2])
     B = c(B,rdr$Estimate[2])
     V[ncutoffs+1,ncutoffs+1] = (rdr$se[3])^2
     Coefs = c(Coefs,rdr$Estimate[1])
     CI[,ncutoffs+1] = c(rdr$ci[3,])
     Pv = c(Pv,rdr$pv[3])
-    H = c(H,rdr$h_l)
+    H = c(H,rdr$bws[1,1])
 
   }
 

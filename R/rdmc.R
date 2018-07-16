@@ -1,6 +1,6 @@
 ###################################################################
 # rdmc: analysis of RD designs with multiple cutoffs
-# !version 0.1 11-Apr-2018
+# !version 0.2 12-Jul-2018
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -105,10 +105,10 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
 
   rdr = eval(parse(text=aux1))
 
-  hl = rdr$h_l
-  hr = rdr$h_r
-  Nhl = rdr$N_h_l
-  Nhr = rdr$N_h_r
+  hl = rdr$bws[1,1]
+  hr = rdr$bws[1,2]
+  Nhl = rdr$Nh[1]
+  Nhr = rdr$Nh[2]
 
   Nh = c(Nh,Nhl+Nhr)
   B = c(B,rdr$Estimate[2])
@@ -116,7 +116,7 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
   Coefs = c(Coefs,rdr$Estimate[1])
   CI[,1] = c(rdr$ci[3,])
   Pv = c(Pv,rdr$pv[3])
-  H = c(H,rdr$h_l)
+  H = c(H,rdr$bws[1,1])
 
 
   #################################################################
@@ -145,13 +145,13 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
 
     rdr.tmp = rdrobust::rdrobust(yc,xc,h=h,b=b,p=p,kernel=kernel,fuzzy=fuzzy)
 
-    Nh = c(Nh,rdr.tmp$N_h_l+rdr.tmp$N_h_r)
+    Nh = c(Nh,rdr.tmp$Nh[1]+rdr.tmp$Nh[2])
     B = c(B,rdr.tmp$Estimate[2])
     V[count+1,count+1] = (rdr.tmp$se[3])^2
     Coefs = c(Coefs,rdr.tmp$Estimate[1])
     CI[,count+1] = c(rdr.tmp$ci[3,])
     Pv = c(Pv,rdr.tmp$pv[3])
-    H = c(H,rdr.tmp$h_l)
+    H = c(H,rdr.tmp$bws[1,1])
 
     count = count + 1
   }
@@ -239,10 +239,10 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
                 pv.rb = rdr$pv[3],
                 ci.rb.l = rdr$ci[3,1],
                 ci.rb.r = rdr$ci[3,2],
-                hl = rdr$h_l,
-                hr = rdr$h_r,
-                Nhl = rdr$N_h_l,
-                Nhr = rdr$N_h_r,
+                hl = rdr$bws[1,1],
+                hr = rdr$bws[1,2],
+                Nhl = rdr$Nh[1],
+                Nhr = rdr$Nh[2],
                 B = B,
                 V = V,
                 Coefs = Coefs,
@@ -250,6 +250,7 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
                 Nh = Nh,
                 CI = CI,
                 H = H,
+                Pv = Pv,
                 rdrobust.results = rdr)
 
   return(output)
