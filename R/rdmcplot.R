@@ -1,6 +1,6 @@
 ###################################################################
 # rdmcplot: RD plots with multiple cutoffs
-# !version 0.2 12-Jul-2018
+# !version 0.3 21-Oct-2019
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -10,23 +10,31 @@
 #'
 #'
 #' @author
-#' Matias Cattaneo, University of Michigan. \email{cattaneo@umich.edu}
+#' Matias Cattaneo, Princeton University. \email{cattaneo@princeton.edu}
 #'
-#' Rocio Titiunik, University of Michigan. \email{titiunik@umich.edu}
+#' Rocio Titiunik, Princeton University. \email{titiunik@princeton.edu}
 #'
-#' Gonzalo Vazquez-Bare, University of Michigan. \email{gvazquez@umich.edu}
+#' Gonzalo Vazquez-Bare, UC Santa Barbara. \email{gvazquez@econ.ucsb.edu}
 #'
 #' @references
 #'
-#' M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2018). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2018_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper, University of Michigan}.
+#' M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2019). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2019_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
 #'
 #'
 #' @param Y outcome variable.
 #' @param X running variable.
 #' @param C cutoff variable.
-#' @param hvec bandwidths to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.
-#' @param pvec order of the polynomials to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.
-#' @param noscatter omits scatter plot.
+#' @param pvec vector of cutoff-specific polynomial orders. See \code{rdplot()} for details.
+#' @param hmat matrix of cutoff-specific bandwidths. See \code{rdplot()} for details.
+#' @param nbinsmat matrix of cutoff-specific number of bins. See \code{rdplot()} for details.
+#' @param binselectvec vector of cutoff-specific bins selection method. See \code{rdplot()} for details.
+#' @param scalevec vector of cutoff-specific scale factors. See \code{rdplot()} for details.
+#' @param kernelvec vector of cutoff-specific kernels. See \code{rdplot()} for details.
+#' @param weightsvec vector of cutoff-specific weights. See \code{rdplot()} for details.
+#' @param supportmat matrix of cutoff-specific support conditions. See \code{rdplot()} for details..
+#' @param covsvec vector of cutoff-specific covariates. See \code{rdplot()} for details.
+#' @param nobins omits bins plot.
+#' @param nopoly omits polynomial curve plot.
 #' @param nodraw omits plot.
 #'
 #'
@@ -53,9 +61,17 @@
 #' @export
 
 rdmcplot = function(Y,X,C,
-                    hvec=NULL,
                     pvec=NULL,
-                    noscatter=FALSE,
+                    hmat=NULL,
+                    nbinsmat=NULL,
+                    binselectvec=NULL,
+                    scalevec=NULL,
+                    kernelvec=NULL,
+                    weightsvec=NULL,
+                    supportmat=NULL,
+                    covsvec=NULL,
+                    nobins=FALSE,
+                    nopoly=FALSE,
                     nodraw=FALSE){
 
   #################################################################
@@ -71,7 +87,23 @@ rdmcplot = function(Y,X,C,
   D = as.numeric(X>=C)
 
   if (is.null(pvec)){pvec = rep(4,cnum)}
-  if (is.null(hvec)){hvec = rep(Inf,cnum)}
+  if (!is.null(hmat)){
+    if (is.null(dim(hmat))){
+      hmat = matrix(hmat,nrow=cnum,ncol=2)
+    }
+    haux = hmat
+  }
+  else{
+    haux = matrix(Inf,ncol=2,nrow=cnum)
+  }
+  if (!is.null(nbinsmat)){
+    if (is.null(dim(nbinsmat))){
+      nbinsmat = matrix(nbinsmat,nrow=cnum,ncol=2)
+    }
+  }
+  if (is.null(binselectvec)){binselectvec = rep('esmv',cnum)}
+  if (is.null(scalevec)){scalevec = rep(1,cnum)}
+  if (is.null(kernelvec)){kernelvec = rep('uni',cnum)}
 
   X0 = NULL
   X1 = NULL
@@ -87,99 +119,53 @@ rdmcplot = function(Y,X,C,
   # Construct variables for plots
   #################################################################
 
-  c = clist[1]
-  h = hvec[1]
-  p = pvec[1]
+  count = 1
+  for (c in clist){
 
-  yc = Y[C==c & X<=c+h & X>=c-h]
-  xc = X[C==c & X<=c+h & X>=c-h]
-  dc = D[C==c & X<=c+h & X>=c-h]
-  yc0 = yc[dc==0]
-  yc1 = yc[dc==1]
-  xc0 = xc[dc==0]
-  xc1 = xc[dc==1]
-
-  xseq0 = seq(min(xc0,na.rm=TRUE),max(xc0,na.rm=TRUE),length.out=length(xc0))
-  XP0 = poly(xseq0-c,degree=p,raw=TRUE)
-  XP0 = cbind(rep(1,nrow(XP0)),XP0)
-
-  xseq1 = seq(min(xc1,na.rm=TRUE),max(xc1,na.rm=TRUE),length.out=length(xc1))
-  XP1 = poly(xseq1-c,degree=p,raw=TRUE)
-  XP1 = cbind(rep(1,nrow(XP1)),XP1)
-
-  aux = rdrobust::rdplot(yc,xc,c=c,p=p,hide=TRUE)
-  aux1 = aux$genvars
-  xmean = aux1$rdplot_mean_x
-  xmean[xmean<c & !is.na(xmean)] = sort(xmean[xmean<c & !is.na(xmean)]) # remove if rdplot is fixed
-  ymean = aux1$rdplot_mean_y
-
-  yhat0 = XP0%*%aux$coef[,1]
-  yhat1 = XP1%*%aux$coef[,2]
-
-  length(xseq0) = length(Y)
-  length(xseq1) = length(Y)
-  length(yhat0) = length(Y)
-  length(yhat1) = length(Y)
-  length(xmean) = length(Y)
-  length(ymean) = length(Y)
-
-  X0 = cbind(X0,xseq0)
-  YHAT0 = cbind(YHAT0,yhat0)
-  X1 = cbind(X1,xseq1)
-  YHAT1 = cbind(YHAT1,yhat1)
-  XMEAN = cbind(XMEAN,xmean)
-  YMEAN = cbind(YMEAN,ymean)
-
-
-  count = 2
-  for (c in clist[-1]){
-
-    h = hvec[count]
-    p = pvec[count]
-
-    yc = Y[C==c & X<=c+h & X>=c-h]
-    xc = X[C==c & X<=c+h & X>=c-h]
-    dc = D[C==c & X<=c+h & X>=c-h]
+    yc = Y[C==c & X<=c+haux[count,2] & X>=c-haux[count,1]]
+    xc = X[C==c & X<=c+haux[count,2] & X>=c-haux[count,1]]
+    dc = D[C==c & X<=c+haux[count,2] & X>=c-haux[count,1]]
     yc0 = yc[dc==0]
     yc1 = yc[dc==1]
     xc0 = xc[dc==0]
     xc1 = xc[dc==1]
 
-    xseq0 = seq(min(xc0,na.rm=TRUE),max(xc0,na.rm=TRUE),length.out=length(xc0))
-    XP0 = poly(xseq0-c,degree=p,raw=TRUE)
-    XP0 = cbind(rep(1,nrow(XP0)),XP0)
+    aux = rdrobust::rdplot(yc,xc,c=c,
+                           p=pvec[count],
+                           h=hmat[count,],
+                           nbins=nbinsmat[count,],
+                           binselect=binselectvec[count],
+                           scale=scalevec[count],
+                           kernel=kernelvec[count],
+                           weights=weightsvec[count],
+                           covs=covsvec[count],
+                           support=supportmat[count,],
+                           hide=TRUE)
 
-    xseq1 = seq(min(xc1,na.rm=TRUE),max(xc1,na.rm=TRUE),length.out=length(xc1))
-    XP1 = poly(xseq1-c,degree=p,raw=TRUE)
-    XP1 = cbind(rep(1,nrow(XP1)),XP1)
+    xmean = aux$vars_bins[,2]
+    ymean = aux$vars_bins[,3]
+    x0 = aux$vars_poly[aux$vars_poly[,1]<c,1]
+    yhat0 = aux$vars_poly[aux$vars_poly[,1]<c,2]
+    x1 = aux$vars_poly[aux$vars_poly[,1]>c,1]
+    yhat1 = aux$vars_poly[aux$vars_poly[,1]>c,2]
 
-    aux = rdrobust::rdplot(yc,xc,c=c,p=p,hide=TRUE)
-    aux1 = aux$genvars
-    xmean = aux1$rdplot_mean_x
-    xmean[xmean<c & !is.na(xmean)] = sort(xmean[xmean<c & !is.na(xmean)]) # remove if rdplot is fixed
-    ymean = aux1$rdplot_mean_y
-
-    yhat0 = XP0%*%aux$coef[,1]
-    yhat1 = XP1%*%aux$coef[,2]
-
-    length(xseq0) = length(Y)
-    length(xseq1) = length(Y)
-    length(yhat0) = length(Y)
-    length(yhat1) = length(Y)
     length(xmean) = length(Y)
     length(ymean) = length(Y)
+    length(x0) = length(Y)
+    length(yhat0) = length(Y)
+    length(x1) = length(Y)
+    length(yhat1) = length(Y)
 
-    X0 = cbind(X0,xseq0)
-    YHAT0 = cbind(YHAT0,yhat0)
-    X1 = cbind(X1,xseq1)
-    YHAT1 = cbind(YHAT1,yhat1)
     XMEAN = cbind(XMEAN,xmean)
     YMEAN = cbind(YMEAN,ymean)
+    X0 = cbind(X0,x0)
+    X1 = cbind(X1,x1)
+    YHAT0 = cbind(YHAT0,yhat0)
+    YHAT1 = cbind(YHAT1,yhat1)
 
     count = count + 1
 
   }
-
 
   #################################################################
   # Plots
@@ -192,19 +178,30 @@ rdmcplot = function(Y,X,C,
 
     plot(NA,xlim=xlim,ylim=ylim,xlab='Running variable',ylab='Outcome')
 
-    for (c in 1:cnum){
-      lines(X0[,c],YHAT0[,c],col=colorlist[c])
-      lines(X1[,c],YHAT1[,c],col=colorlist[c])
-      abline(v=clist[c],col=colorlist[c],lty='dotted')
+    if (nobins==FALSE & nopoly==FALSE){
+      for (c in 1:cnum){
+        lines(X0[,c],YHAT0[,c],col=colorlist[c])
+        lines(X1[,c],YHAT1[,c],col=colorlist[c])
+        points(XMEAN[,c],YMEAN[,c],col=colorlist[c])
+        abline(v=clist[c],col=colorlist[c],lty='dotted')
+      }
     }
-
-    if (noscatter==FALSE){
+    else if (nobins==TRUE & nopoly==FALSE){
+      for (c in 1:cnum){
+        lines(X0[,c],YHAT0[,c],col=colorlist[c])
+        lines(X1[,c],YHAT1[,c],col=colorlist[c])
+        abline(v=clist[c],col=colorlist[c],lty='dotted')
+      }
+    }
+    else if (nobins==FALSE & nopoly==TRUE){
       for (c in 1:cnum){
         points(XMEAN[,c],YMEAN[,c],col=colorlist[c])
+        abline(v=clist[c],col=colorlist[c],lty='dotted')
       }
     }
 
   }
+
   #################################################################
   # Return values
   #################################################################

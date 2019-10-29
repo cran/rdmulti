@@ -1,6 +1,6 @@
 ###################################################################
 # rdmc: analysis of RD designs with multiple cutoffs
-# !version 0.2 12-Jul-2018
+# !version 0.3 21-Oct-2019
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -10,26 +10,38 @@
 #'
 #'
 #' @author
-#' Matias Cattaneo, University of Michigan. \email{cattaneo@umich.edu}
+#' Matias Cattaneo, Princeton University. \email{cattaneo@princeton.edu}
 #'
-#' Rocio Titiunik, University of Michigan. \email{titiunik@umich.edu}
+#' Rocio Titiunik, Princeton University. \email{titiunik@princeton.edu}
 #'
-#' Gonzalo Vazquez-Bare, University of Michigan. \email{gvazquez@umich.edu}
+#' Gonzalo Vazquez-Bare, UC Santa Barbara. \email{gvazquez@econ.ucsb.edu}
 #'
 #' @references
 #'
-#' M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2018). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2018_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper, University of Michigan}.
+#' M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2019). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2019_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
 #'
 #'
 #' @param Y outcome variable.
 #' @param X running variable.
 #' @param C cutoff variable.
 #' @param pooled.opt options to be passed to \code{rdrobust()} to calculate pooled estimand.
-#' @param hvec bandwidths to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.
-#' @param bvec bandwidths for the bias to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.
-#' @param pvec order of the polynomials to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.
-#' @param kernelvec kernels to be passed to \code{rdrobust()} to calculate cutoff-specific estimates.Should be a vector of length equal to the number of different cutoffs.
-#' @param fuzzy specifies a fuzzy design.
+#' @param derivvec vector of cutoff-specific order of derivatives. See \code{rdrobust()} for details.
+#' @param pvec vector of cutoff-specific polynomial orders. See \code{rdrobust()} for details.
+#' @param qvec vector of cutoff-specific polynomial orders for bias estimation. See \code{rdrobust()} for details.
+#' @param hmat matrix of cutoff-specific bandwidths. See \code{rdrobust()} for details.
+#' @param bmat matrix of cutoff-specific bandwidths for bias estimation. See \code{rdrobust()} for details.
+#' @param rhovec vector of cutoff-specific values of rho. See \code{rdrobust()} for details.
+#' @param covsvec vector of cutoff-specific covariates. See \code{rdrobust()} for details.
+#' @param kernelvec vector of cutoff-speficif kernels. See \code{rdrobust()} for details.
+#' @param weightsvec vector of cutoff-speficif weights. See \code{rdrobust()} for details.
+#' @param bwselectvec vector of cutoff-speficif bandwidth selection methods. See \code{rdrobust()} for details.
+#' @param vcevec vector of cutoff-speficif variance-covariance estimation methods. See \code{rdrobust()} for details.
+#' @param cluster cluster ID variable. See \code{rdrobust()} for details.
+#' @param nnmatchvec vector of cutoff-speficif nearestneighbors for variance estimation. See \code{rdrobust()} for details.
+#' @param scaleparvec vector of cutoff-speficif scale parameters. See \code{rdrobust()} for details.
+#' @param scaleregulvec vector of cutoff-speficif scale regularization parameters. See \code{rdrobust()} for details.
+#' @param fuzzy specifies a fuzzy design. See \code{rdrobust()} for details.
+#' @param level confidence level for confidence intervals. See \code{rdrobust()} for details.
 #' @param plot plots cutoff-specific estimates and weights.
 #' @param verbose displays the output from \code{rdrobust} for estimating the pooled estimand.
 #'
@@ -44,13 +56,14 @@
 #' \item{hr}{bandwidth to the right of the cutoff for pooled estimate}
 #' \item{Nhl}{sample size within bandwidth to the left of the cutoff for pooled estimate}
 #' \item{Nhr}{sample size within bandwidth to the right of the cutoff for pooled estimate}
-#' \item{B}{vector of bias-corrected coefficients}
-#' \item{V}{variance-covariance matrix of the estimators}
-#' \item{Coefs}{vector of conventional coefficients}
+#' \item{B}{vector of bias-corrected estimates}
+#' \item{V}{vector of robust variances of the estimates}
+#' \item{Coefs}{vector of conventional estimates}
 #' \item{W}{vector of weights for each cutoff-specific estimate}
-#' \item{Nh}{vector of sample sizes within bandwidth at each cutoff}
-#' \item{CI}{bias corrected confidence intervals}
-#' \item{H}{bandwidth used at each cutoff}
+#' \item{Nh}{vector of sample sizes within bandwidth}
+#' \item{CI}{robust bias-corrected confidence intervals}
+#' \item{H}{matrix of bandwidths}
+#' \item{Pv}{vector of robust p-values}
 #' \item{rdrobust.results}{results from rdrobust for pooled estimate}
 #'
 #'
@@ -61,18 +74,28 @@
 #' Y <- (1 + X + (X>=C))*(C==33)+(.5 + .5*X + .8*(X>=C))*(C==66) + rnorm(1000)
 #' # rdmc with standard syntax
 #' tmp <- rdmc(Y,X,C)
-#' # rdmc with cutoff-specific bandwidths
-#' tmp <- rdmc(Y,X,C,hvec=c(9,13))
 #'
 #'
 #' @export
 
 rdmc = function(Y,X,C,pooled.opt=NULL,
-                hvec=NULL,
-                bvec=NULL,
+                derivvec=NULL,
                 pvec=NULL,
+                qvec=NULL,
+                hmat=NULL,
+                bmat=NULL,
+                rhovec=NULL,
+                covsvec=NULL,
                 kernelvec=NULL,
+                weightsvec=NULL,
+                bwselectvec=NULL,
+                vcevec=NULL,
+                cluster=NULL,
+                nnmatchvec=NULL,
+                scaleparvec=NULL,
+                scaleregulvec=NULL,
                 fuzzy=NULL,
+                level=95,
                 plot=FALSE,
                 verbose=FALSE){
 
@@ -88,20 +111,32 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
 
   Xc = X - C
 
-  B = NULL
-  V = matrix(0,nrow=cnum+1,ncol=cnum+1)
-  Nh = NULL
-  W = NULL
-  Coefs = NULL
-  CI = matrix(NA,nrow=2,ncol=cnum+1)
-  Pv = NULL
-  H = NULL
+  if (!is.null(hmat)){
+    if (is.null(dim(hmat))){
+      hmat = matrix(hmat,nrow=cnum,ncol=2)
+    }
+  }
+  if (is.null(kernelvec)){kernelvec = rep('tri',cnum)}
+  if (is.null(bwselectvec)){bwselectvec = rep('mserd',cnum)}
+  if (is.null(vcevec)){vcevec = rep('nn',cnum)}
+  if (is.null(nnmatchvec)){nnmatchvec = rep(3,cnum)}
+  if (is.null(scaleparvec)){scaleparvec = rep(1,cnum)}
+  if (is.null(scaleregulvec)){scaleregulvec = rep(1,cnum)}
+
+  B = matrix(NA,nrow=1,ncol=cnum+2)
+  V = matrix(NA,nrow=1,ncol=cnum+2)
+  Coefs = matrix(NA,nrow=1,ncol=cnum+2)
+  Nh = matrix(NA,nrow=2,ncol=cnum+2)
+  CI = matrix(NA,nrow=2,ncol=cnum+2)
+  Pv = matrix(NA,nrow=1,ncol=cnum+2)
+  H = matrix(NA,nrow=2,ncol=cnum+2)
+  W = matrix(NA,nrow=1,ncol=cnum)
 
   #################################################################
   # Calculate pooled estimate
   #################################################################
 
-  aux1 = paste0('rdrobust::rdrobust(Y,Xc,',pooled.opt,',fuzzy=fuzzy)')
+  aux1 = paste0('rdrobust::rdrobust(Y,Xc,,fuzzy=fuzzy,',pooled.opt,')')
 
   rdr = eval(parse(text=aux1))
 
@@ -110,14 +145,13 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
   Nhl = rdr$Nh[1]
   Nhr = rdr$Nh[2]
 
-  Nh = c(Nh,Nhl+Nhr)
-  B = c(B,rdr$Estimate[2])
-  V[1,1] = (rdr$se[3])^2
-  Coefs = c(Coefs,rdr$Estimate[1])
-  CI[,1] = c(rdr$ci[3,])
-  Pv = c(Pv,rdr$pv[3])
-  H = c(H,rdr$bws[1,1])
-
+  B[1,cnum+2] = rdr$Estimate[2]
+  V[1,cnum+2] = rdr$se[3]^2
+  Coefs[1,cnum+2] = rdr$Estimate[1]
+  CI[,cnum+2] = rdr$ci[3,]
+  H[,cnum+2] = rdr$bws[1,]
+  Nh[,cnum+2] = rdr$Nh
+  Pv[1,cnum+2] = rdr$pv[3]
 
   #################################################################
   # Calculate cutoff-specific estimates and weights
@@ -126,36 +160,52 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
   count = 1
   for (c in clist){
 
-    n.aux = length(Y[C==c & Xc<=hr & Xc>=-hl])
-    weight = n.aux / (Nhl + Nhr)
-
-    W = c(W,weight)
-
     yc = Y[C==c]
     xc = Xc[C==c]
 
-    h = hvec[count]
-    b = bvec[count]
-    p = pvec[count]
-    if (!is.null(kernelvec)){
-      kernel = kernelvec[count]
-    } else{
-      kernel = 'tri'
-    }
+    rdr.tmp = rdrobust::rdrobust(yc,xc,
+                                 deriv=derivvec[count],
+                                 p=pvec[count],
+                                 q=qvec[count],
+                                 h=hmat[count,],
+                                 b=bmat[count,],
+                                 rho=rhovec[count],
+                                 covs=covsvec[count],
+                                 kernel=kernelvec[count],
+                                 weights=weightsvec[count],
+                                 bwselect=bwselectvec[count],
+                                 vce=vcevec[count],
+                                 cluster=cluster,
+                                 nnmatch=nnmatchvec[count],
+                                 level=level,
+                                 scalepar=scaleparvec[count],
+                                 scaleregul=scaleregulvec[count],
+                                 fuzzy=fuzzy)
 
-    rdr.tmp = rdrobust::rdrobust(yc,xc,h=h,b=b,p=p,kernel=kernel,fuzzy=fuzzy)
-
-    Nh = c(Nh,rdr.tmp$Nh[1]+rdr.tmp$Nh[2])
-    B = c(B,rdr.tmp$Estimate[2])
-    V[count+1,count+1] = (rdr.tmp$se[3])^2
-    Coefs = c(Coefs,rdr.tmp$Estimate[1])
-    CI[,count+1] = c(rdr.tmp$ci[3,])
-    Pv = c(Pv,rdr.tmp$pv[3])
-    H = c(H,rdr.tmp$bws[1,1])
+    B[1,count] = rdr.tmp$Estimate[2]
+    V[1,count] = rdr.tmp$se[3]^2
+    Coefs[1,count] = rdr.tmp$Estimate[1]
+    CI[,count] = rdr.tmp$ci[3,]
+    H[,count] = rdr.tmp$bws[1,]
+    Nh[,count] = rdr.tmp$Nh
+    Pv[1,count] = rdr.tmp$pv[3]
 
     count = count + 1
   }
 
+  # Weights
+
+  W[1,] = colSums(Nh[,1:cnum])/sum(Nh[,1:cnum])
+
+  # Weighted estimate
+
+  B[1,cnum+1] = B[1,1:cnum]%*%t(W)
+  V[1,cnum+1] = V[1,1:cnum]%*%t(W^2)
+  Coefs[1,cnum+1] = Coefs[1,1:cnum]%*%t(W)
+  Nh[,cnum+1] = rowSums(Nh[,1:cnum])
+  CI[1,cnum+1] = B[1,cnum+1]-sqrt(V[1,cnum+1])*qnorm(1-(1-level/100)/2)
+  CI[2,cnum+1] = B[1,cnum+1]+sqrt(V[1,cnum+1])*qnorm(1-(1-level/100)/2)
+  Pv[1,cnum+1] = 2*(1-pnorm(abs(B[1,cnum+1]/sqrt(V[1,cnum+1]))))
 
   #################################################################
   # Display results
@@ -169,33 +219,46 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
   cat('\n')
   cat(paste0(format('Cutoff',  width=11),
              format('Coef.',   width=11),
-             format('P-value', width=19),
-             format('95% CI',  width=20),
-             format('h',       width=10),
-             format('Nh',      width=10),
-             format('Weight',  width=10))); cat('\n')
+             format('P-value', width=13),
+             format('95% CI',  width=16),
+             format('hl',      width=9),
+             format('hr',      width=8),
+             format('Nh',      width=8),
+             format('Weight',  width=7))); cat('\n')
 
 
   for (k in 1:cnum){
-    cat(paste0(format(toString(round(clist[k],3)),   width=11),
-               format(toString(round(Coefs[k+1],3)), width=12),
-               format(toString(round(Pv[k+1],3)),    width=12),
-               format(toString(round(CI[1,k+1],3)),  width=12),
-               format(toString(round(CI[2,k+1],3)),  width=12),
-               format(toString(round(H[k+1],3)),     width=12),
-               format(toString(Nh[k+1]),             width=11),
-               format(toString(round(W[k],3)),       width=12)))
+    cat(paste0(format(toString(round(clist[k],3)), width=11),
+               format(toString(round(Coefs[k],3)), width=11),
+               format(toString(round(Pv[k],3)),    width=8),
+               format(toString(round(CI[1,k],3)),  width=9),
+               format(toString(round(CI[2,k],3)),  width=10),
+               format(toString(round(H[1,k],3)),   width=9),
+               format(toString(round(H[2,k],3)),   width=9),
+               format(toString(Nh[1,k]+Nh[2,k]),   width=11),
+               format(toString(round(W[k],3)),     width=11)))
     cat('\n')
   }
 
-  cat(paste0(format('Pooled', width=11),
-             format(toString(round(Coefs[1],3)), width=12),
-             format(toString(round(Pv[1],3)),    width=12),
-             format(toString(round(CI[1,1],3)),  width=12),
-             format(toString(round(CI[2,1],3)),  width=12),
-             format(toString(round(H[1],3)),     width=12),
-             format(toString(Nh[1]),             width=11),
-             format(' .',                        width=12)))
+  cat(paste0(format('Weighted',                          width=11),
+             format(toString(round(Coefs[1,cnum+1],3)),  width=11),
+             format(toString(round(Pv[1,cnum+1],3)),     width=8),
+             format(toString(round(CI[1,cnum+1],3)),     width=9),
+             format(toString(round(CI[2,cnum+1],3)),     width=10),
+             format('  .',                               width=9),
+             format('  .',                               width=9),
+             format(toString(Nh[1,cnum+1]+Nh[2,cnum+1]), width=11),
+             format(' .',                                width=11)))
+  cat('\n')
+  cat(paste0(format('Pooled',                            width=11),
+             format(toString(round(Coefs[cnum+2],3)),    width=11),
+             format(toString(round(Pv[cnum+2],3)),       width=8),
+             format(toString(round(CI[1,cnum+2],3)),     width=9),
+             format(toString(round(CI[2,cnum+2],3)),     width=10),
+             format(toString(round(H[1,cnum+2],3)),      width=9),
+             format(toString(round(H[2,cnum+2],3)),      width=9),
+             format(toString(Nh[1,cnum+2]+Nh[2,cnum+2]), width=11),
+             format(' .',                                width=11)))
   cat('\n')
 
 
@@ -233,6 +296,17 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
   #################################################################
   # Return values
   #################################################################
+
+  colnames(B) = c(1:cnum,"weighted","pooled")
+  colnames(V) = c(1:cnum,"weighted","pooled")
+  colnames(Coefs) = c(1:cnum,"weighted","pooled")
+  colnames(CI) = c(1:cnum,"weighted","pooled")
+  colnames(Nh) = c(1:cnum,"weighted","pooled")
+  colnames(H) = c(1:cnum,"weighted","pooled")
+  colnames(Pv) = c(1:cnum,"weighted","pooled")
+
+  rownames(Nh) = c("left","right")
+  rownames(H) = c("left","right")
 
   output = list(tau = rdr$Estimate[1],
                 se.rb = rdr$se[3],

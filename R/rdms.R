@@ -1,6 +1,6 @@
 ###################################################################
 # rdms: analysis of RD designs with multiple scores
-# !version 0.2 12-Jul-2018
+# !version 0.3 21-Oct-2019
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -10,15 +10,15 @@
 #'
 #'
 #' @author
-#' Matias Cattaneo, University of Michigan. \email{cattaneo@umich.edu}
+#' Matias Cattaneo, Princeton University. \email{cattaneo@princeton.edu}
 #'
-#' Rocio Titiunik, University of Michigan. \email{titiunik@umich.edu}
+#' Rocio Titiunik, Princeton University. \email{titiunik@princeton.edu}
 #'
-#' Gonzalo Vazquez-Bare, University of Michigan. \email{gvazquez@umich.edu}
+#' Gonzalo Vazquez-Bare, UC Santa Barbara. \email{gvazquez@econ.ucsb.edu}
 #'
 #' @references
 #'
-#' M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2018). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2018_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper, University of Michigan}.
+#' M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2019). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2019_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
 #'
 #'
 #' @param Y outcome variable.
@@ -27,16 +27,27 @@
 #' @param X2 if specified, second running variable.
 #' @param zvar if X2 is specified, treatment indicator.
 #' @param C2 if specified, second vector of cutoffs.
-#' @param range.l range of the running variable to be used for estimation around the cutoff from the left.
-#' @param range.r range of the running variable to be used for estimation around the cutoff from the right.
+#' @param rangemat matrix of cutoff-specific ranges for the running variable.
 #' @param xnorm normalized running variable to estimate pooled effect.
 #' @param pooled.opt options to be passed to \code{rdrobust()} to calculate pooled estimand.
-#' @param hvec bandwidths to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.
-#' @param bvec bandwidths for the bias to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.
-#' @param pvec order of the polynomials to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.
-#' @param kernelvec kernels to be passed to \code{rdrobust()} to calculate cutoff-specific estimates.Should be a vector of length equal to the number of different cutoffs.
-#' @param fuzzy specifies a fuzzy design.
-#' @param plot plots cutoff-specific estimates and weights.
+#' @param derivvec vector of cutoff-specific order of derivatives. See \code{rdrobust()} for details.
+#' @param pvec vector of cutoff-specific polynomial orders. See \code{rdrobust()} for details.
+#' @param qvec vector of cutoff-specific polynomial orders for bias estimation. See \code{rdrobust()} for details.
+#' @param hmat matrix of cutoff-specific bandwidths. See \code{rdrobust()} for details.
+#' @param bmat matrix of cutoff-specific bandwidths for bias estimation. See \code{rdrobust()} for details.
+#' @param rhovec vector of cutoff-specific values of rho. See \code{rdrobust()} for details.
+#' @param covsvec vector of cutoff-specific covariates. See \code{rdrobust()} for details.
+#' @param kernelvec vector of cutoff-speficif kernels. See \code{rdrobust()} for details.
+#' @param weightsvec vector of cutoff-speficif weights. See \code{rdrobust()} for details.
+#' @param bwselectvec vector of cutoff-speficif bandwidth selection methods. See \code{rdrobust()} for details.
+#' @param vcevec vector of cutoff-speficif variance-covariance estimation methods. See \code{rdrobust()} for details.
+#' @param cluster cluster ID variable. See \code{rdrobust()} for details.
+#' @param nnmatchvec vector of cutoff-speficif nearestneighbors for variance estimation. See \code{rdrobust()} for details.
+#' @param scaleparvec vector of cutoff-speficif scale parameters. See \code{rdrobust()} for details.
+#' @param scaleregulvec vector of cutoff-speficif scale regularization parameters. See \code{rdrobust()} for details.
+#' @param fuzzy specifies a fuzzy design. See \code{rdrobust()} for details.
+#' @param level confidence level for confidence intervals. See \code{rdrobust()} for details.
+#' @param plot plots cutoff-specific and pooled estimates.
 #'
 #'
 #' @return
@@ -46,6 +57,7 @@
 #' \item{Nh}{vector of sample sizes within bandwidth at each cutoff}
 #' \item{CI}{bias corrected confidence intervals}
 #' \item{H}{bandwidth used at each cutoff}
+#' \item{Pv}{vector of robust p-values}
 #'
 #'
 #' @examples
@@ -60,14 +72,27 @@
 #' @export
 
 rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
-                range.l=NULL,
-                range.r=NULL,
+                #range.l=NULL,
+                #range.r=NULL,
+                rangemat=NULL,
                 xnorm=NULL,
                 pooled.opt=NULL,
-                hvec=NULL,
-                bvec=NULL,
+                derivvec=NULL,
                 pvec=NULL,
+                qvec=NULL,
+                hmat=NULL,
+                bmat=NULL,
+                rhovec=NULL,
+                covsvec=NULL,
                 kernelvec=NULL,
+                weightsvec=NULL,
+                bwselectvec=NULL,
+                vcevec=NULL,
+                cluster=NULL,
+                nnmatchvec=NULL,
+                scaleparvec=NULL,
+                scaleregulvec=NULL,
+                level=95,
                 fuzzy=NULL,
                 plot=FALSE){
 
@@ -78,26 +103,43 @@ rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
   if (!is.null(X2) & is.null(zvar)){stop('Need to specify zvar when X2 is specified')}
   if (!is.null(X2) & is.null(C2)){stop('Need to specify C2 if X2 is specified')}
 
-  ncutoffs = length(C)
+  cnum = length(C)
 
   if (!is.null(C2)){
-    if (ncutoffs!=length(C2)){stop('cutoff coordinates incorrectly specified')}
+    if (cnum!=length(C2)){stop('cutoff coordinates incorrectly specified')}
   }
 
-  if (!is.null(range.l)){
-    if (is.null(range.r)){range.r = range.l}
+  if (!is.null(rangemat)){
+    if (is.null(dim(rangemat))){
+      rangemat = matrix(rangemat,nrow=cnum,ncol=2)
+    }
+  }
+  else {
+    rangemat = cbind(rep(-Inf,cnum),rep(Inf,cnum))
   }
 
-  B = NULL
-  V = matrix(0,nrow=ncutoffs+1,ncol=ncutoffs + !is.null(xnorm))
-  Nh = NULL
-  Coefs = NULL
-  CI = matrix(NA,nrow=2,ncol=ncutoffs + !is.null(xnorm))
-  Pv = NULL
-  H = NULL
+  if (!is.null(hmat)){
+    if (is.null(dim(hmat))){
+      hmat = matrix(hmat,nrow=cnum,ncol=2)
+    }
+  }
+
+  if (is.null(kernelvec)){kernelvec = rep('tri',cnum)}
+  if (is.null(bwselectvec)){bwselectvec = rep('mserd',cnum)}
+  if (is.null(vcevec)){vcevec = rep('nn',cnum)}
+  if (is.null(nnmatchvec)){nnmatchvec = rep(3,cnum)}
+  if (is.null(scaleparvec)){scaleparvec = rep(1,cnum)}
+  if (is.null(scaleregulvec)){scaleregulvec = rep(1,cnum)}
+
+  B = matrix(NA,nrow=1,ncol=cnum+1)
+  V = matrix(NA,nrow=1,ncol=cnum+1)
+  Coefs = matrix(NA,nrow=1,ncol=cnum+1)
+  Nh = matrix(NA,nrow=2,ncol=cnum+1)
+  CI = matrix(NA,nrow=2,ncol=cnum+1)
+  Pv = matrix(NA,nrow=1,ncol=cnum+1)
+  H = matrix(NA,nrow=2,ncol=cnum+1)
 
   c.disp = NULL
-
 
   #################################################################
   # Calculate cutoff-specific estimates
@@ -105,39 +147,39 @@ rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
 
   if (is.null(X2)){
 
-    for (c in 1:ncutoffs){
+    for (c in 1:cnum){
 
       xc = X - C[c]
+      Rc = rangemat - C
 
-      if (is.null(range.l)){
-        rc = Inf
-        rt = Inf
-      } else {
-        rc = range.l[c]
-        rt = range.r[c]
-      }
+      yc = Y[xc>=Rc[c,1] & xc<=Rc[c,2]]
+      xc = xc[xc>=Rc[c,1] & xc<=Rc[c,2]]
 
-      h = hvec[c]
-      b = bvec[c]
-      p = pvec[c]
-      if (!is.null(kernelvec)){
-        kernel = kernelvec[c]
-      } else{
-        kernel = 'tri'
-      }
+      rdr.tmp = rdrobust::rdrobust(yc,xc,deriv=derivvec[c],
+                                   p=pvec[c],
+                                   q=qvec[c],
+                                   h=hmat[c,],
+                                   b=bmat[c,],
+                                   rho=rhovec[c],
+                                   covs=covsvec[c],
+                                   kernel=kernelvec[c],
+                                   weights=weightsvec[c],
+                                   bwselect=bwselectvec[c],
+                                   vce=vcevec[c],
+                                   cluster=cluster,
+                                   nnmatch=nnmatchvec[c],
+                                   scalepar=scaleparvec[c],
+                                   scaleregul=scaleregulvec[c],
+                                   level=level,
+                                   fuzzy=fuzzy)
 
-      yc = Y[xc>=-rc & xc<=rt]
-      xc = xc[xc>=-rc & xc<=rt]
-
-      rdr.tmp = rdrobust::rdrobust(yc,xc,h=h,b=b,p=p,kernel=kernel,fuzzy=fuzzy)
-
-      Nh = c(Nh,rdr.tmp$Nh[1]+rdr.tmp$Nh[2])
-      B = c(B,rdr.tmp$Estimate[2])
-      V[c,c] = (rdr.tmp$se[3])^2
-      Coefs = c(Coefs,rdr.tmp$Estimate[1])
-      CI[,c] = c(rdr.tmp$ci[3,])
-      Pv = c(Pv,rdr.tmp$pv[3])
-      H = c(H,rdr.tmp$bws[1,1])
+      B[1,c] = rdr.tmp$Estimate[2]
+      V[1,c] = rdr.tmp$se[3]^2
+      Coefs[1,c] = rdr.tmp$Estimate[1]
+      CI[,c] = rdr.tmp$ci[3,]
+      H[,c] = rdr.tmp$bws[1,]
+      Nh[,c] = rdr.tmp$Nh
+      Pv[1,c] = rdr.tmp$pv[3]
 
       c.disp = c(c.disp,round(C[c],2))
 
@@ -145,39 +187,38 @@ rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
 
   } else {
 
-    for (c in 1:ncutoffs){
+    for (c in 1:cnum){
 
       xc = sqrt((X-C[c])^2+(X2-C2[c])^2)*(2*zvar-1)
 
-      if (is.null(range.l)){
-        rc = Inf
-        rt = Inf
-      } else {
-        rc = range.l[c]
-        rt = range.r[c]
-      }
+      yc = Y[xc>=rangemat[c,1] & xc<=rangemat[c,2]]
+      xc = xc[xc>=rangemat[c,1] & xc<=rangemat[c,2]]
 
-      h = hvec[c]
-      b = bvec[c]
-      p = pvec[c]
-      if (!is.null(kernelvec)){
-        kernel = kernelvec[c]
-      } else{
-        kernel = 'tri'
-      }
+      rdr.tmp = rdrobust::rdrobust(yc,xc,
+                                   p=pvec[c],
+                                   q=qvec[c],
+                                   h=hmat[c,],
+                                   b=bmat[c,],
+                                   rho=rhovec[c],
+                                   covs=covsvec[c],
+                                   kernel=kernelvec[c],
+                                   weights=weightsvec[c],
+                                   bwselect=bwselectvec[c],
+                                   vce=vcevec[c],
+                                   cluster=cluster,
+                                   nnmatch=nnmatchvec[c],
+                                   scalepar=scaleparvec[c],
+                                   scaleregul=scaleregulvec[c],
+                                   level=level,
+                                   fuzzy=fuzzy)
 
-      yc = Y[xc>=-rc & xc<=rt]
-      xc = xc[xc>=-rc & xc<=rt]
-
-      rdr.tmp = rdrobust::rdrobust(yc,xc,h=h,b=b,p=p,kernel=kernel,fuzzy=fuzzy)
-
-      Nh = c(Nh,rdr.tmp$Nh[1]+rdr.tmp$Nh[2])
-      B = c(B,rdr.tmp$Estimate[2])
-      V[c,c] = (rdr.tmp$se[3])^2
-      Coefs = c(Coefs,rdr.tmp$Estimate[1])
-      CI[,c] = c(rdr.tmp$ci[3,])
-      Pv = c(Pv,rdr.tmp$pv[3])
-      H = c(H,rdr.tmp$bws[1,1])
+      B[1,c] = rdr.tmp$Estimate[2]
+      V[1,c] = rdr.tmp$se[3]^2
+      Coefs[1,c] = rdr.tmp$Estimate[1]
+      CI[,c] = rdr.tmp$ci[3,]
+      H[,c] = rdr.tmp$bws[1,]
+      Nh[,c] = rdr.tmp$Nh
+      Pv[1,c] = rdr.tmp$pv[3]
 
       c.disp = c(c.disp,paste0('(',round(C[c],2),',',round(C2[c],2),')'))
 
@@ -192,17 +233,17 @@ rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
 
   if (!is.null(xnorm)){
 
-    aux1 = paste0('rdrobust::rdrobust(Y,xnorm,',pooled.opt,'fuzzy=fuzzy)')
+    aux1 = paste0('rdrobust::rdrobust(Y,xnorm,fuzzy=fuzzy,',pooled.opt,')')
 
     rdr = eval(parse(text=aux1))
 
-    Nh = c(Nh,rdr$Nh[1]+rdr$Nh[2])
-    B = c(B,rdr$Estimate[2])
-    V[ncutoffs+1,ncutoffs+1] = (rdr$se[3])^2
-    Coefs = c(Coefs,rdr$Estimate[1])
-    CI[,ncutoffs+1] = c(rdr$ci[3,])
-    Pv = c(Pv,rdr$pv[3])
-    H = c(H,rdr$bws[1,1])
+    B[1,cnum+1] = rdr$Estimate[2]
+    V[1,cnum+1] = rdr$se[3]^2
+    Coefs[1,cnum+1] = rdr$Estimate[1]
+    CI[,cnum+1] = rdr$ci[3,]
+    H[,cnum+1] = rdr$bws[1,]
+    Nh[,cnum+1] = rdr$Nh
+    Pv[1,cnum+1] = rdr$pv[3]
 
   }
 
@@ -212,33 +253,36 @@ rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
   #################################################################
 
   cat('\n')
-  cat(paste0(format('Cutoff',  width=15),
-             format('Coef.',   width=11),
-             format('P-value', width=19),
-             format('95% CI',  width=20),
-             format('h',       width=10),
+  cat(paste0(format('Cutoff',  width=14),
+             format('Coef.',   width=8),
+             format('P-value', width=15),
+             format('95% CI',  width=16),
+             format('hl',      width=9),
+             format('hr',      width=9),
              format('Nh',      width=10))); cat('\n')
 
 
-  for (k in 1:ncutoffs){
-    cat(paste0(format(toString(c.disp[k]),         width=15),
+  for (k in 1:cnum){
+    cat(paste0(format(toString(c.disp[k]),         width=12),
                format(toString(round(Coefs[k],3)), width=12),
-               format(toString(round(Pv[k],3)),    width=12),
-               format(toString(round(CI[1,k],3)),  width=12),
-               format(toString(round(CI[2,k],3)),  width=12),
-               format(toString(round(H[k],3)),     width=12),
-               format(toString(Nh[k]),             width=11)))
+               format(toString(round(Pv[k],3)),    width=8),
+               format(toString(round(CI[1,k],3)),  width=10),
+               format(toString(round(CI[2,k],3)),  width=10),
+               format(toString(round(H[1,k],3)),   width=9),
+               format(toString(round(H[2,k],3)),   width=9),
+               format(toString(Nh[1,k]+Nh[2,k]),   width=10)))
     cat('\n')
   }
 
   if (!is.null(xnorm)){
-    cat(paste0(format('Pooled', width=15),
-               format(toString(round(Coefs[ncutoffs+1],3)),width=12),
-               format(toString(round(Pv[ncutoffs+1],3)),   width=12),
-               format(toString(round(CI[1,ncutoffs+1],3)), width=12),
-               format(toString(round(CI[2,ncutoffs+1],3)), width=12),
-               format(toString(round(H[ncutoffs+1],3)),    width=12),
-               format(toString(Nh[ncutoffs+1]),            width=11)))
+    cat(paste0(format('Pooled',                            width=12),
+               format(toString(round(Coefs[cnum+1],3)),    width=12),
+               format(toString(round(Pv[cnum+1],3)),       width=8),
+               format(toString(round(CI[1,cnum+1],3)),     width=10),
+               format(toString(round(CI[2,cnum+1],3)),     width=10),
+               format(toString(round(H[1,cnum+1],3)),      width=9),
+               format(toString(round(H[2,cnum+1],3)),      width=9),
+               format(toString(Nh[1,cnum+1]+Nh[2,cnum+1]), width=10)))
   }
   cat('\n')
 
@@ -251,12 +295,24 @@ rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
   # Return values
   #################################################################
 
+  colnames(B) = c(1:cnum,"pooled")
+  colnames(V) = c(1:cnum,"pooled")
+  colnames(Coefs) = c(1:cnum,"pooled")
+  colnames(CI) = c(1:cnum,"pooled")
+  colnames(Nh) = c(1:cnum,"pooled")
+  colnames(H) = c(1:cnum,"pooled")
+  colnames(Pv) = c(1:cnum,"pooled")
+
+  rownames(Nh) = c("left","right")
+  rownames(H) = c("left","right")
+
   output = list(B = B,
                 V = V,
                 Coefs = Coefs,
                 Nh = Nh,
                 CI = CI,
-                H = H)
+                H = H,
+                Pv = Pv)
 
   return(output)
 

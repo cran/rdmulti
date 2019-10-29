@@ -4,8 +4,12 @@
 \alias{rdmc}
 \title{Analysis of RD designs with multiple cutoffs}
 \usage{
-rdmc(Y, X, C, pooled.opt = NULL, hvec = NULL, bvec = NULL, pvec = NULL,
-  kernelvec = NULL, fuzzy = NULL, plot = FALSE, verbose = FALSE)
+rdmc(Y, X, C, pooled.opt = NULL, derivvec = NULL, pvec = NULL,
+  qvec = NULL, hmat = NULL, bmat = NULL, rhovec = NULL,
+  covsvec = NULL, kernelvec = NULL, weightsvec = NULL,
+  bwselectvec = NULL, vcevec = NULL, cluster = NULL,
+  nnmatchvec = NULL, scaleparvec = NULL, scaleregulvec = NULL,
+  fuzzy = NULL, level = 95, plot = FALSE, verbose = FALSE)
 }
 \arguments{
 \item{Y}{outcome variable.}
@@ -16,15 +20,39 @@ rdmc(Y, X, C, pooled.opt = NULL, hvec = NULL, bvec = NULL, pvec = NULL,
 
 \item{pooled.opt}{options to be passed to \code{rdrobust()} to calculate pooled estimand.}
 
-\item{hvec}{bandwidths to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.}
+\item{derivvec}{vector of cutoff-specific order of derivatives. See \code{rdrobust()} for details.}
 
-\item{bvec}{bandwidths for the bias to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.}
+\item{pvec}{vector of cutoff-specific polynomial orders. See \code{rdrobust()} for details.}
 
-\item{pvec}{order of the polynomials to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.}
+\item{qvec}{vector of cutoff-specific polynomial orders for bias estimation. See \code{rdrobust()} for details.}
 
-\item{kernelvec}{kernels to be passed to \code{rdrobust()} to calculate cutoff-specific estimates.Should be a vector of length equal to the number of different cutoffs.}
+\item{hmat}{matrix of cutoff-specific bandwidths. See \code{rdrobust()} for details.}
 
-\item{fuzzy}{specifies a fuzzy design.}
+\item{bmat}{matrix of cutoff-specific bandwidths for bias estimation. See \code{rdrobust()} for details.}
+
+\item{rhovec}{vector of cutoff-specific values of rho. See \code{rdrobust()} for details.}
+
+\item{covsvec}{vector of cutoff-specific covariates. See \code{rdrobust()} for details.}
+
+\item{kernelvec}{vector of cutoff-speficif kernels. See \code{rdrobust()} for details.}
+
+\item{weightsvec}{vector of cutoff-speficif weights. See \code{rdrobust()} for details.}
+
+\item{bwselectvec}{vector of cutoff-speficif bandwidth selection methods. See \code{rdrobust()} for details.}
+
+\item{vcevec}{vector of cutoff-speficif variance-covariance estimation methods. See \code{rdrobust()} for details.}
+
+\item{cluster}{cluster ID variable. See \code{rdrobust()} for details.}
+
+\item{nnmatchvec}{vector of cutoff-speficif nearestneighbors for variance estimation. See \code{rdrobust()} for details.}
+
+\item{scaleparvec}{vector of cutoff-speficif scale parameters. See \code{rdrobust()} for details.}
+
+\item{scaleregulvec}{vector of cutoff-speficif scale regularization parameters. See \code{rdrobust()} for details.}
+
+\item{fuzzy}{specifies a fuzzy design. See \code{rdrobust()} for details.}
+
+\item{level}{confidence level for confidence intervals. See \code{rdrobust()} for details.}
 
 \item{plot}{plots cutoff-specific estimates and weights.}
 
@@ -40,13 +68,14 @@ rdmc(Y, X, C, pooled.opt = NULL, hvec = NULL, bvec = NULL, pvec = NULL,
 \item{hr}{bandwidth to the right of the cutoff for pooled estimate}
 \item{Nhl}{sample size within bandwidth to the left of the cutoff for pooled estimate}
 \item{Nhr}{sample size within bandwidth to the right of the cutoff for pooled estimate}
-\item{B}{vector of bias-corrected coefficients}
-\item{V}{variance-covariance matrix of the estimators}
-\item{Coefs}{vector of conventional coefficients}
+\item{B}{vector of bias-corrected estimates}
+\item{V}{vector of robust variances of the estimates}
+\item{Coefs}{vector of conventional estimates}
 \item{W}{vector of weights for each cutoff-specific estimate}
-\item{Nh}{vector of sample sizes within bandwidth at each cutoff}
-\item{CI}{bias corrected confidence intervals}
-\item{H}{bandwidth used at each cutoff}
+\item{Nh}{vector of sample sizes within bandwidth}
+\item{CI}{robust bias-corrected confidence intervals}
+\item{H}{matrix of bandwidths}
+\item{Pv}{vector of robust p-values}
 \item{rdrobust.results}{results from rdrobust for pooled estimate}
 }
 \description{
@@ -59,18 +88,16 @@ C <- c(rep(33,500),rep(66,500))
 Y <- (1 + X + (X>=C))*(C==33)+(.5 + .5*X + .8*(X>=C))*(C==66) + rnorm(1000)
 # rdmc with standard syntax
 tmp <- rdmc(Y,X,C)
-# rdmc with cutoff-specific bandwidths
-tmp <- rdmc(Y,X,C,hvec=c(9,13))
 
 
 }
 \references{
-M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2018). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2018_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper, University of Michigan}.
+M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2019). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2019_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
 }
 \author{
-Matias Cattaneo, University of Michigan. \email{cattaneo@umich.edu}
+Matias Cattaneo, Princeton University. \email{cattaneo@princeton.edu}
 
-Rocio Titiunik, University of Michigan. \email{titiunik@umich.edu}
+Rocio Titiunik, Princeton University. \email{titiunik@princeton.edu}
 
-Gonzalo Vazquez-Bare, University of Michigan. \email{gvazquez@umich.edu}
+Gonzalo Vazquez-Bare, UC Santa Barbara. \email{gvazquez@econ.ucsb.edu}
 }

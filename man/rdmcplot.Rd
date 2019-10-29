@@ -4,8 +4,10 @@
 \alias{rdmcplot}
 \title{RD plots with multiple cutoffs.}
 \usage{
-rdmcplot(Y, X, C, hvec = NULL, pvec = NULL, noscatter = FALSE,
-  nodraw = FALSE)
+rdmcplot(Y, X, C, pvec = NULL, hmat = NULL, nbinsmat = NULL,
+  binselectvec = NULL, scalevec = NULL, kernelvec = NULL,
+  weightsvec = NULL, supportmat = NULL, covsvec = NULL,
+  nobins = FALSE, nopoly = FALSE, nodraw = FALSE)
 }
 \arguments{
 \item{Y}{outcome variable.}
@@ -14,11 +16,27 @@ rdmcplot(Y, X, C, hvec = NULL, pvec = NULL, noscatter = FALSE,
 
 \item{C}{cutoff variable.}
 
-\item{hvec}{bandwidths to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.}
+\item{pvec}{vector of cutoff-specific polynomial orders. See \code{rdplot()} for details.}
 
-\item{pvec}{order of the polynomials to be passed to \code{rdrobust()} to calculate cutoff-specific estimates. Should be a vector of length equal to the number of different cutoffs.}
+\item{hmat}{matrix of cutoff-specific bandwidths. See \code{rdplot()} for details.}
 
-\item{noscatter}{omits scatter plot.}
+\item{nbinsmat}{matrix of cutoff-specific number of bins. See \code{rdplot()} for details.}
+
+\item{binselectvec}{vector of cutoff-specific bins selection method. See \code{rdplot()} for details.}
+
+\item{scalevec}{vector of cutoff-specific scale factors. See \code{rdplot()} for details.}
+
+\item{kernelvec}{vector of cutoff-specific kernels. See \code{rdplot()} for details.}
+
+\item{weightsvec}{vector of cutoff-specific weights. See \code{rdplot()} for details.}
+
+\item{supportmat}{matrix of cutoff-specific support conditions. See \code{rdplot()} for details..}
+
+\item{covsvec}{vector of cutoff-specific covariates. See \code{rdplot()} for details.}
+
+\item{nobins}{omits bins plot.}
+
+\item{nopoly}{omits polynomial curve plot.}
 
 \item{nodraw}{omits plot.}
 }
@@ -46,12 +64,12 @@ tmp <- rdmcplot(Y,X,C)
 
 }
 \references{
-M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2018). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2018_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper, University of Michigan}.
+M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2019). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2019_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
 }
 \author{
-Matias Cattaneo, University of Michigan. \email{cattaneo@umich.edu}
+Matias Cattaneo, Princeton University. \email{cattaneo@princeton.edu}
 
-Rocio Titiunik, University of Michigan. \email{titiunik@umich.edu}
+Rocio Titiunik, Princeton University. \email{titiunik@princeton.edu}
 
-Gonzalo Vazquez-Bare, University of Michigan. \email{gvazquez@umich.edu}
+Gonzalo Vazquez-Bare, UC Santa Barbara. \email{gvazquez@econ.ucsb.edu}
 }
