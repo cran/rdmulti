@@ -1,6 +1,6 @@
 ###################################################################
 # rdms: analysis of RD designs with multiple scores
-# !version 0.3 21-Oct-2019
+# !version 0.4 07-Jan-2020
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -178,7 +178,7 @@ rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
       Coefs[1,c] = rdr.tmp$Estimate[1]
       CI[,c] = rdr.tmp$ci[3,]
       H[,c] = rdr.tmp$bws[1,]
-      Nh[,c] = rdr.tmp$Nh
+      Nh[,c] = rdr.tmp$N_h
       Pv[1,c] = rdr.tmp$pv[3]
 
       c.disp = c(c.disp,round(C[c],2))
@@ -217,7 +217,7 @@ rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
       Coefs[1,c] = rdr.tmp$Estimate[1]
       CI[,c] = rdr.tmp$ci[3,]
       H[,c] = rdr.tmp$bws[1,]
-      Nh[,c] = rdr.tmp$Nh
+      Nh[,c] = rdr.tmp$N_h
       Pv[1,c] = rdr.tmp$pv[3]
 
       c.disp = c(c.disp,paste0('(',round(C[c],2),',',round(C2[c],2),')'))
@@ -242,7 +242,7 @@ rdms = function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,
     Coefs[1,cnum+1] = rdr$Estimate[1]
     CI[,cnum+1] = rdr$ci[3,]
     H[,cnum+1] = rdr$bws[1,]
-    Nh[,cnum+1] = rdr$Nh
+    Nh[,cnum+1] = rdr$N_h
     Pv[1,cnum+1] = rdr$pv[3]
 
   }

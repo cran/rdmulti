@@ -1,6 +1,6 @@
 ###################################################################
 # rdmc: analysis of RD designs with multiple cutoffs
-# !version 0.3 21-Oct-2019
+# !version 0.4 07-Jan-2020
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -142,15 +142,15 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
 
   hl = rdr$bws[1,1]
   hr = rdr$bws[1,2]
-  Nhl = rdr$Nh[1]
-  Nhr = rdr$Nh[2]
+  Nhl = rdr$N_h[1]
+  Nhr = rdr$N_h[2]
 
   B[1,cnum+2] = rdr$Estimate[2]
   V[1,cnum+2] = rdr$se[3]^2
   Coefs[1,cnum+2] = rdr$Estimate[1]
   CI[,cnum+2] = rdr$ci[3,]
   H[,cnum+2] = rdr$bws[1,]
-  Nh[,cnum+2] = rdr$Nh
+  Nh[,cnum+2] = rdr$N_h
   Pv[1,cnum+2] = rdr$pv[3]
 
   #################################################################
@@ -187,7 +187,7 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
     Coefs[1,count] = rdr.tmp$Estimate[1]
     CI[,count] = rdr.tmp$ci[3,]
     H[,count] = rdr.tmp$bws[1,]
-    Nh[,count] = rdr.tmp$Nh
+    Nh[,count] = rdr.tmp$N_h
     Pv[1,count] = rdr.tmp$pv[3]
 
     count = count + 1
@@ -315,8 +315,8 @@ rdmc = function(Y,X,C,pooled.opt=NULL,
                 ci.rb.r = rdr$ci[3,2],
                 hl = rdr$bws[1,1],
                 hr = rdr$bws[1,2],
-                Nhl = rdr$Nh[1],
-                Nhr = rdr$Nh[2],
+                Nhl = rdr$N_h[1],
+                Nhr = rdr$N_h[2],
                 B = B,
                 V = V,
                 Coefs = Coefs,
