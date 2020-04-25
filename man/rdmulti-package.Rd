@@ -16,7 +16,7 @@ cumulative cutoffs or multi-score designs. For more details, and related \code{S
 \code{R} packages useful for analysis of RD designs, visit \url{https://sites.google.com/site/rdpackages}.
 }
 \references{
-M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2019). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2019_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
+M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2020). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2020_Stata.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
 }
 \author{
 Matias Cattaneo, Princeton University. \email{cattaneo@princeton.edu}

@@ -3,6 +3,8 @@
 export(rdmc)
 export(rdmcplot)
 export(rdms)
+import(ggplot2)
+import(rdrobust)
 importFrom(graphics,abline)
 importFrom(graphics,arrows)
 importFrom(graphics,barplot)

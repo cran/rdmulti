@@ -4,10 +4,33 @@
 \alias{rdmcplot}
 \title{RD plots with multiple cutoffs.}
 \usage{
-rdmcplot(Y, X, C, pvec = NULL, hmat = NULL, nbinsmat = NULL,
-  binselectvec = NULL, scalevec = NULL, kernelvec = NULL,
-  weightsvec = NULL, supportmat = NULL, covsvec = NULL,
-  nobins = FALSE, nopoly = FALSE, nodraw = FALSE)
+rdmcplot(
+  Y,
+  X,
+  C,
+  nbinsmat = NULL,
+  binselectvec = NULL,
+  scalevec = NULL,
+  supportmat = NULL,
+  pvec = NULL,
+  hmat = NULL,
+  kernelvec = NULL,
+  weightsvec = NULL,
+  covsvec = NULL,
+  covs_evalvec = NULL,
+  covs_dropvec = NULL,
+  ci = NULL,
+  col_bins = NULL,
+  pch_bins = NULL,
+  col_poly = NULL,
+  lty_poly = NULL,
+  col_xline = NULL,
+  lty_xline = NULL,
+  nobins = FALSE,
+  nopoly = FALSE,
+  noxline = FALSE,
+  nodraw = FALSE
+)
 }
 \arguments{
 \item{Y}{outcome variable.}
@@ -16,27 +39,60 @@ rdmcplot(Y, X, C, pvec = NULL, hmat = NULL, nbinsmat = NULL,
 
 \item{C}{cutoff variable.}
 
-\item{pvec}{vector of cutoff-specific polynomial orders. See \code{rdplot()} for details.}
+\item{nbinsmat}{matrix of cutoff-specific number of bins. See \code{rdplot()}
+for details.}
 
-\item{hmat}{matrix of cutoff-specific bandwidths. See \code{rdplot()} for details.}
+\item{binselectvec}{vector of cutoff-specific bins selection method. See
+\code{rdplot()} for details.}
 
-\item{nbinsmat}{matrix of cutoff-specific number of bins. See \code{rdplot()} for details.}
+\item{scalevec}{vector of cutoff-specific scale factors. See \code{rdplot()}
+for details.}
 
-\item{binselectvec}{vector of cutoff-specific bins selection method. See \code{rdplot()} for details.}
+\item{supportmat}{matrix of cutoff-specific support conditions. See
+\code{rdplot()} for details..}
 
-\item{scalevec}{vector of cutoff-specific scale factors. See \code{rdplot()} for details.}
+\item{pvec}{vector of cutoff-specific polynomial orders. See \code{rdplot()}
+for details.}
 
-\item{kernelvec}{vector of cutoff-specific kernels. See \code{rdplot()} for details.}
+\item{hmat}{matrix of cutoff-specific bandwidths. See \code{rdplot()} for
+details.}
 
-\item{weightsvec}{vector of cutoff-specific weights. See \code{rdplot()} for details.}
+\item{kernelvec}{vector of cutoff-specific kernels. See \code{rdplot()} for
+details.}
 
-\item{supportmat}{matrix of cutoff-specific support conditions. See \code{rdplot()} for details..}
+\item{weightsvec}{vector of cutoff-specific weights. See \code{rdplot()} for
+details.}
 
-\item{covsvec}{vector of cutoff-specific covariates. See \code{rdplot()} for details.}
+\item{covsvec}{vector of cutoff-specific covariates. See \code{rdplot()} for
+details.}
+
+\item{covs_evalvec}{vector indicating the evaluation point for additional
+covariates should be dropped at each cutoff. See \code{rdrobust()} for
+details.}
+
+\item{covs_dropvec}{vector indicating whether collinear covariates should be
+dropped at each cutoff. See \code{rdrobust()} for details.}
+
+\item{ci}{adds confidence intervals of the specified level to the plot. See
+\code{rdrobust()} for details.}
+
+\item{col_bins}{vector of colors for bins.}
+
+\item{pch_bins}{vector of characters (pch) type for bins.}
+
+\item{col_poly}{vector of colors for polynomial curves.}
+
+\item{lty_poly}{vector of lty for polynomial curves.}
+
+\item{col_xline}{vector of colors for vertical lines.}
+
+\item{lty_xline}{vector of lty for vertical lines.}
 
 \item{nobins}{omits bins plot.}
 
 \item{nopoly}{omits polynomial curve plot.}
+
+\item{noxline}{omits vertical lines indicating the cutoffs.}
 
 \item{nodraw}{omits plot.}
 }
@@ -49,9 +105,11 @@ rdmcplot(Y, X, C, pvec = NULL, hmat = NULL, nbinsmat = NULL,
 \item{Yhat1}{estimated polynomial for treated units}
 \item{Xmean}{bin average of X values}
 \item{Ymean}{bin average for Y values}
+\item{CI_l}{lower end of confidence intervals}
+\item{CI_r}{upper end of confidence intervals}
 }
 \description{
-\code{rdmc()} RD plots with multiple cutoffs.
+\code{rdmcplot()} RD plots with multiple cutoffs.
 }
 \examples{
 # Toy dataset
@@ -64,7 +122,7 @@ tmp <- rdmcplot(Y,X,C)
 
 }
 \references{
-M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2019). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2019_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
+M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2020). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2020_Stata.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
 }
 \author{
 Matias Cattaneo, Princeton University. \email{cattaneo@princeton.edu}

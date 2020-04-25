@@ -1,9 +1,8 @@
 ###################################################################
 # rdmulti: analysis of RD designs with multiple cutoffs or scores
-# !version 0.4 07-Jan-2020
+# !version 0.5 22-Apr-2020
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
-
 
 #' rdmulti: analysis of RD Designs with multiple cutoffs or scores
 #'
@@ -24,7 +23,7 @@
 #'
 #' @references
 #'
-#' M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2019). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2019_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
+#' M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2020). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2020_Stata.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
 #'
 #' @importFrom graphics abline
 #' @importFrom graphics arrows
@@ -39,6 +38,8 @@
 #' @importFrom stats poly
 #' @importFrom stats pnorm
 #' @importFrom stats qnorm
+#' @import ggplot2
+#' @import rdrobust
 #'
 #'
 #' @aliases rdmulti_package

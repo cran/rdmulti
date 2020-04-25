@@ -1,12 +1,12 @@
 ###################################################################
 # rdmcplot: RD plots with multiple cutoffs
-# !version 0.4 07-Jan-2020
+# !version 0.5 22-Apr-2020
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
 #' RD plots with multiple cutoffs.
 #'
-#' \code{rdmc()} RD plots with multiple cutoffs.
+#' \code{rdmcplot()} RD plots with multiple cutoffs.
 #'
 #'
 #' @author
@@ -18,23 +18,46 @@
 #'
 #' @references
 #'
-#' M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2019). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2019_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
+#' M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2020). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2020_Stata.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
 #'
 #'
 #' @param Y outcome variable.
 #' @param X running variable.
 #' @param C cutoff variable.
-#' @param pvec vector of cutoff-specific polynomial orders. See \code{rdplot()} for details.
-#' @param hmat matrix of cutoff-specific bandwidths. See \code{rdplot()} for details.
-#' @param nbinsmat matrix of cutoff-specific number of bins. See \code{rdplot()} for details.
-#' @param binselectvec vector of cutoff-specific bins selection method. See \code{rdplot()} for details.
-#' @param scalevec vector of cutoff-specific scale factors. See \code{rdplot()} for details.
-#' @param kernelvec vector of cutoff-specific kernels. See \code{rdplot()} for details.
-#' @param weightsvec vector of cutoff-specific weights. See \code{rdplot()} for details.
-#' @param supportmat matrix of cutoff-specific support conditions. See \code{rdplot()} for details..
-#' @param covsvec vector of cutoff-specific covariates. See \code{rdplot()} for details.
+#' @param nbinsmat matrix of cutoff-specific number of bins. See \code{rdplot()}
+#'   for details.
+#' @param binselectvec vector of cutoff-specific bins selection method. See
+#'   \code{rdplot()} for details.
+#' @param scalevec vector of cutoff-specific scale factors. See \code{rdplot()}
+#'   for details.
+#' @param supportmat matrix of cutoff-specific support conditions. See
+#'   \code{rdplot()} for details..
+#' @param pvec vector of cutoff-specific polynomial orders. See \code{rdplot()}
+#'   for details.
+#' @param hmat matrix of cutoff-specific bandwidths. See \code{rdplot()} for
+#'   details.
+#' @param kernelvec vector of cutoff-specific kernels. See \code{rdplot()} for
+#'   details.
+#' @param weightsvec vector of cutoff-specific weights. See \code{rdplot()} for
+#'   details.
+#' @param covsvec vector of cutoff-specific covariates. See \code{rdplot()} for
+#'   details.
+#' @param covs_evalvec vector indicating the evaluation point for additional
+#'   covariates should be dropped at each cutoff. See \code{rdrobust()} for
+#'   details.
+#' @param covs_dropvec vector indicating whether collinear covariates should be
+#'   dropped at each cutoff. See \code{rdrobust()} for details.
+#' @param ci adds confidence intervals of the specified level to the plot. See
+#'   \code{rdrobust()} for details.
+#' @param col_bins vector of colors for bins.
+#' @param pch_bins vector of characters (pch) type for bins.
+#' @param col_poly vector of colors for polynomial curves.
+#' @param lty_poly vector of lty for polynomial curves.
+#' @param col_xline vector of colors for vertical lines.
+#' @param lty_xline vector of lty for vertical lines.
 #' @param nobins omits bins plot.
 #' @param nopoly omits polynomial curve plot.
+#' @param noxline omits vertical lines indicating the cutoffs.
 #' @param nodraw omits plot.
 #'
 #'
@@ -47,6 +70,8 @@
 #' \item{Yhat1}{estimated polynomial for treated units}
 #' \item{Xmean}{bin average of X values}
 #' \item{Ymean}{bin average for Y values}
+#' \item{CI_l}{lower end of confidence intervals}
+#' \item{CI_r}{upper end of confidence intervals}
 #'
 #'
 #' @examples
@@ -60,19 +85,12 @@
 #'
 #' @export
 
-rdmcplot = function(Y,X,C,
-                    pvec=NULL,
-                    hmat=NULL,
-                    nbinsmat=NULL,
-                    binselectvec=NULL,
-                    scalevec=NULL,
-                    kernelvec=NULL,
-                    weightsvec=NULL,
-                    supportmat=NULL,
-                    covsvec=NULL,
-                    nobins=FALSE,
-                    nopoly=FALSE,
-                    nodraw=FALSE){
+rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
+                     supportmat=NULL,pvec=NULL,hmat=NULL,kernelvec=NULL,
+                     weightsvec=NULL,covsvec=NULL,covs_evalvec=NULL,
+                     covs_dropvec=NULL,ci=NULL,col_bins=NULL,pch_bins=NULL,
+                     col_poly=NULL,lty_poly=NULL,col_xline=NULL,lty_xline=NULL,
+                     nobins=FALSE,nopoly=FALSE,noxline=FALSE,nodraw=FALSE){
 
   #################################################################
   # Setup and error checking
@@ -81,38 +99,39 @@ rdmcplot = function(Y,X,C,
   if (!is.numeric(C)){stop('C has to be numeric')}
   if (max(C,na.rm=TRUE)>=max(X,na.rm=TRUE) | min(C,na.rm=TRUE)<=min(X,na.rm=TRUE)){stop('cutoff variable outside range of running variable')}
 
-  clist = sort(unique(C))
-  cnum = length(clist)
+  clist <- sort(unique(C))
+  cnum <- length(clist)
 
-  D = as.numeric(X>=C)
+  D <- as.numeric(X>=C)
 
   if (is.null(pvec)){pvec = rep(4,cnum)}
   if (!is.null(hmat)){
     if (is.null(dim(hmat))){
-      hmat = matrix(hmat,nrow=cnum,ncol=2)
+      hmat <- matrix(hmat,nrow=cnum,ncol=2)
     }
-    haux = hmat
-  }
-  else{
-    haux = matrix(Inf,ncol=2,nrow=cnum)
+    haux <- hmat
+  }  else{
+    haux <- matrix(Inf,ncol=2,nrow=cnum)
   }
   if (!is.null(nbinsmat)){
     if (is.null(dim(nbinsmat))){
-      nbinsmat = matrix(nbinsmat,nrow=cnum,ncol=2)
+      nbinsmat <- matrix(nbinsmat,nrow=cnum,ncol=2)
     }
   }
-  if (is.null(binselectvec)){binselectvec = rep('esmv',cnum)}
-  if (is.null(scalevec)){scalevec = rep(1,cnum)}
-  if (is.null(kernelvec)){kernelvec = rep('uni',cnum)}
+  if (is.null(binselectvec)) binselectvec <- rep('esmv',cnum)
+  if (is.null(scalevec)) scalevec <- rep(1,cnum)
+  if (is.null(kernelvec)) kernelvec <- rep('uni',cnum)
+  if (is.null(covs_evalvec)) covs_evalvec <- rep(0,cnum)
+  if (is.null(covs_dropvec)) covs_dropvec <- rep(TRUE,cnum)
 
-  X0 = NULL
-  X1 = NULL
-  YHAT0 = NULL
-  YHAT1 = NULL
-  XMEAN = NULL
-  YMEAN = NULL
-
-  colorlist = c('darkblue','darkred','darkgreen','darkorange','gray50','khaki4','brown3','blue','darkgoldenrod4','cyan4')
+  X0 <- matrix(NA,nrow=length(Y),ncol=cnum)
+  X1 <- matrix(NA,nrow=length(Y),ncol=cnum)
+  YHAT0 <- matrix(NA,nrow=length(Y),ncol=cnum)
+  YHAT1 <- matrix(NA,nrow=length(Y),ncol=cnum)
+  XMEAN <- matrix(NA,nrow=length(Y),ncol=cnum)
+  YMEAN <- matrix(NA,nrow=length(Y),ncol=cnum)
+  CI_l <- matrix(NA,nrow=length(Y),ncol=cnum)
+  CI_r <- matrix(NA,nrow=length(Y),ncol=cnum)
 
 
   #################################################################
@@ -122,98 +141,181 @@ rdmcplot = function(Y,X,C,
   count = 1
   for (c in clist){
 
-    yc = Y[C==c & X<=c+haux[count,2] & X>=c-haux[count,1]]
-    xc = X[C==c & X<=c+haux[count,2] & X>=c-haux[count,1]]
-    dc = D[C==c & X<=c+haux[count,2] & X>=c-haux[count,1]]
-    yc0 = yc[dc==0]
-    yc1 = yc[dc==1]
-    xc0 = xc[dc==0]
-    xc1 = xc[dc==1]
+    yc <- Y[C==c & X<=c+haux[count,2] & X>=c-haux[count,1]]
+    xc <- X[C==c & X<=c+haux[count,2] & X>=c-haux[count,1]]
+    dc <- D[C==c & X<=c+haux[count,2] & X>=c-haux[count,1]]
+    yc0 <- yc[dc==0]
+    yc1 <- yc[dc==1]
+    xc0 <- xc[dc==0]
+    xc1 <- xc[dc==1]
 
-    aux = rdrobust::rdplot(yc,xc,c=c,
-                           p=pvec[count],
-                           h=hmat[count,],
+    aux <- rdrobust::rdplot(yc,xc,c=c,
                            nbins=nbinsmat[count,],
                            binselect=binselectvec[count],
                            scale=scalevec[count],
+                           support=supportmat[count,],
+                           p=pvec[count],
+                           h=hmat[count,],
                            kernel=kernelvec[count],
                            weights=weightsvec[count],
                            covs=covsvec[count],
-                           support=supportmat[count,],
+                           covs_eval=covs_evalvec[count],
+                           covs_drop=covs_dropvec[count],
+                           ci=ci,
                            hide=TRUE)
 
-    xmean = aux$vars_bins[,2]
-    ymean = aux$vars_bins[,3]
-    x0 = aux$vars_poly[aux$vars_poly[,1]<c,1]
-    yhat0 = aux$vars_poly[aux$vars_poly[,1]<c,2]
-    x1 = aux$vars_poly[aux$vars_poly[,1]>c,1]
-    yhat1 = aux$vars_poly[aux$vars_poly[,1]>c,2]
+    xmean <- aux$vars_bins[,2]
+    ymean <- aux$vars_bins[,3]
+    x0 <- aux$vars_poly[aux$vars_poly[,1]<c,1]
+    yhat0 <- aux$vars_poly[aux$vars_poly[,1]<c,2]
+    x1 <- aux$vars_poly[aux$vars_poly[,1]>c,1]
+    yhat1 <- aux$vars_poly[aux$vars_poly[,1]>c,2]
 
-    length(xmean) = length(Y)
-    length(ymean) = length(Y)
-    length(x0) = length(Y)
-    length(yhat0) = length(Y)
-    length(x1) = length(Y)
-    length(yhat1) = length(Y)
+    length(xmean) <- length(Y)
+    length(ymean) <- length(Y)
+    length(x0) <- length(Y)
+    length(yhat0) <- length(Y)
+    length(x1) <- length(Y)
+    length(yhat1) <- length(Y)
 
-    XMEAN = cbind(XMEAN,xmean)
-    YMEAN = cbind(YMEAN,ymean)
-    X0 = cbind(X0,x0)
-    X1 = cbind(X1,x1)
-    YHAT0 = cbind(YHAT0,yhat0)
-    YHAT1 = cbind(YHAT1,yhat1)
+    XMEAN[,count] <- xmean
+    YMEAN[,count] <- ymean
+    X0[,count] <- x0
+    X1[,count] <- x1
+    YHAT0[,count] <- yhat0
+    YHAT1[,count] <- yhat1
 
-    count = count + 1
+    if(!is.null(ci)){
+      ci_l <- aux$vars_bins[,8]
+      ci_r <- aux$vars_bins[,9]
+      length(ci_l) <- length(Y)
+      length(ci_r) <- length(Y)
+      CI_l[,count] <- ci_l
+      CI_r[,count] <- ci_r
+    }
+
+    count <- count + 1
 
   }
+
+  Xmean <- data.frame(XMEAN)
+  Xmean <- Xmean[1:max(colSums(!is.na(Xmean))),]
+  names(Xmean) <- paste0(rep("Xmean"),1:cnum)
+  Ymean <- data.frame(YMEAN)
+  Ymean <- Ymean[1:max(colSums(!is.na(Ymean))),]
+  names(Ymean) <- paste0(rep("Ymean"),1:cnum)
+  X0    <- data.frame(X0)
+  X0    <- X0[1:max(colSums(!is.na(X0))),]
+  names(X0) <- paste0(rep("X0_"),1:cnum)
+  X1    <- data.frame(X1)
+  X1    <- X1[1:max(colSums(!is.na(X1))),]
+  names(X1) <- paste0(rep("X1_"),1:cnum)
+  Yhat0    <- data.frame(YHAT0)
+  Yhat0    <- Yhat0[1:max(colSums(!is.na(Yhat0))),]
+  names(Yhat0) <- paste0(rep("Yhat0_"),1:cnum)
+  Yhat1    <- data.frame(YHAT1)
+  Yhat1    <- Yhat1[1:max(colSums(!is.na(Yhat1))),]
+  names(Yhat1) <- paste0(rep("Yhat1_"),1:cnum)
+  if(!is.null(ci)){
+    CI_l <- data.frame(CI_l)
+    CI_l <- CI_l[1:max(colSums(!is.na(CI_l))),]
+    names(CI_l) <- paste0(rep("CI_l_"),1:cnum)
+    CI_r <- data.frame(CI_r)
+    CI_r <- CI_r[1:max(colSums(!is.na(CI_r))),]
+    names(CI_r) <- paste0(rep("CI_r_"),1:cnum)
+  }
+
 
   #################################################################
   # Plots
   #################################################################
 
+  colorlist <- c('darkblue','darkred','darkgreen','darkorange','gray50','khaki4','brown3','blue','darkgoldenrod4','cyan4')
+
+  if (is.null(col_bins)){
+    col_bins <- colorlist
+  }
+  if (is.null(pch_bins)){
+    pch_bins <- rep(1,cnum)
+  }
+  if (is.null(col_poly)){
+    col_poly <- colorlist
+  }
+  if (is.null(lty_poly)){
+    lty_poly <- rep('solid',cnum)
+  }
+  if (is.null(col_xline)){
+    col_xline <- colorlist
+  }
+  if (is.null(lty_xline)){
+    lty_xline <- rep('dashed',cnum)
+  }
+
+  rdmc_plot <- ggplot() + theme_bw() + labs(x='Running variable', y='Outcome')
+
+  if (nobins==FALSE){
+    rdmc_plot <- rdmc_plot + geom_point(aes(x=Xmean[,1],y=Ymean[,1]),col=col_bins[1],shape=pch_bins[1],na.rm=TRUE)
+    for (c in 2:cnum){
+      rdmc_plot <- rdmc_plot + geom_point(aes(x=Xmean[,c],y=Ymean[,c]),col=col_bins[c],shape=pch_bins[c],na.rm=TRUE)
+    }
+  }
+  if (nopoly==FALSE){
+    rdmc_plot <- rdmc_plot + geom_line(aes(x=X0[,1],y=Yhat0[,1]),col=col_poly[1],linetype=lty_poly[1],na.rm=TRUE) +
+      geom_line(aes(x=X1[,1],y=Yhat1[,1]),col=col_poly[1],linetype=lty_poly[1],na.rm=TRUE)
+
+    for (c in 2:cnum){
+      rdmc_plot <- rdmc_plot + geom_line(aes(x=X0[,c],y=Yhat0[,c]),col=col_poly[c],linetype=lty_poly[c],na.rm=TRUE) +
+        geom_line(aes(x=X1[,c],y=Yhat1[,c]),col=col_poly[c],linetype=lty_poly[c],na.rm=TRUE)
+    }
+  }
+  if (noxline==FALSE){
+    rdmc_plot <- rdmc_plot + geom_vline(xintercept=clist[1],col=col_xline[1],linetype=lty_xline[c])
+    for (c in 2:cnum){
+      rdmc_plot <- rdmc_plot + geom_vline(xintercept=clist[c],col=col_xline[c],linetype=lty_xline[c])
+    }
+  }
+
+  if (!is.null(ci)){
+    rdmc_plot <- rdmc_plot + geom_errorbar(aes(x=Xmean[,1], ymin=CI_l[,1], ymax=CI_r[,1]),col=col_bins[1],linetype=1)
+    for (c in 2:cnum){
+      rdmc_plot <- rdmc_plot + geom_errorbar(aes(x=Xmean[,c], ymin=CI_l[,c], ymax=CI_r[,c]),col=col_bins[c],linetype=1)
+    }
+  }
+
   if (nodraw==FALSE){
-
-    xlim = c(min(X),max(X))
-    ylim = c(min(YHAT0,YHAT1,na.rm=TRUE),max(YHAT0,YHAT1,na.rm=TRUE))
-
-    plot(NA,xlim=xlim,ylim=ylim,xlab='Running variable',ylab='Outcome')
-
-    if (nobins==FALSE & nopoly==FALSE){
-      for (c in 1:cnum){
-        lines(X0[,c],YHAT0[,c],col=colorlist[c])
-        lines(X1[,c],YHAT1[,c],col=colorlist[c])
-        points(XMEAN[,c],YMEAN[,c],col=colorlist[c])
-        abline(v=clist[c],col=colorlist[c],lty='dotted')
-      }
-    }
-    else if (nobins==TRUE & nopoly==FALSE){
-      for (c in 1:cnum){
-        lines(X0[,c],YHAT0[,c],col=colorlist[c])
-        lines(X1[,c],YHAT1[,c],col=colorlist[c])
-        abline(v=clist[c],col=colorlist[c],lty='dotted')
-      }
-    }
-    else if (nobins==FALSE & nopoly==TRUE){
-      for (c in 1:cnum){
-        points(XMEAN[,c],YMEAN[,c],col=colorlist[c])
-        abline(v=clist[c],col=colorlist[c],lty='dotted')
-      }
-    }
-
+    print(rdmc_plot)
   }
 
   #################################################################
   # Return values
   #################################################################
 
-  output = list(clist = clist,
-                cnum = cnum,
-                X0 = X0,
-                X1 = X1,
-                Yhat0 = YHAT0,
-                Yhat1 = YHAT1,
-                Xmean = XMEAN,
-                Ymean = YMEAN)
+
+
+  if (is.null(ci)){
+    output <- list(clist = clist,
+                  cnum = cnum,
+                  X0 = X0,
+                  X1 = X1,
+                  Yhat0 = Yhat0,
+                  Yhat1 = Yhat1,
+                  Xmean = Xmean,
+                  Ymean = Ymean,
+                  rdmc_plot = rdmc_plot)
+  }  else {
+    output <- list(clist = clist,
+                  cnum = cnum,
+                  X0 = X0,
+                  X1 = X1,
+                  Yhat0 = Yhat0,
+                  Yhat1 = Yhat1,
+                  Xmean = Xmean,
+                  Ymean = Ymean,
+                  rdmc_plot = rdmc_plot,
+                  CI_l = CI_l,
+                  CI_r = CI_r)
+  }
+
 
   return(output)
 }

@@ -4,13 +4,40 @@
 \alias{rdms}
 \title{Analysis of RD designs with cumulative cutoffs or two running variables}
 \usage{
-rdms(Y, X, C, X2 = NULL, zvar = NULL, C2 = NULL, rangemat = NULL,
-  xnorm = NULL, pooled.opt = NULL, derivvec = NULL, pvec = NULL,
-  qvec = NULL, hmat = NULL, bmat = NULL, rhovec = NULL,
-  covsvec = NULL, kernelvec = NULL, weightsvec = NULL,
-  bwselectvec = NULL, vcevec = NULL, cluster = NULL,
-  nnmatchvec = NULL, scaleparvec = NULL, scaleregulvec = NULL,
-  level = 95, fuzzy = NULL, plot = FALSE)
+rdms(
+  Y,
+  X,
+  C,
+  X2 = NULL,
+  zvar = NULL,
+  C2 = NULL,
+  rangemat = NULL,
+  xnorm = NULL,
+  fuzzy = NULL,
+  derivvec = NULL,
+  pooled_opt = NULL,
+  pvec = NULL,
+  qvec = NULL,
+  hmat = NULL,
+  bmat = NULL,
+  rhovec = NULL,
+  covsvec = NULL,
+  covs_dropvec = NULL,
+  kernelvec = NULL,
+  weightsvec = NULL,
+  bwselectvec = NULL,
+  scaleparvec = NULL,
+  scaleregulvec = NULL,
+  masspointsvec = NULL,
+  bwcheckvec = NULL,
+  bwrestrictvec = NULL,
+  stdvarsvec = NULL,
+  vcevec = NULL,
+  nnmatchvec = NULL,
+  cluster = NULL,
+  level = 95,
+  plot = FALSE
+)
 }
 \arguments{
 \item{Y}{outcome variable.}
@@ -29,52 +56,82 @@ rdms(Y, X, C, X2 = NULL, zvar = NULL, C2 = NULL, rangemat = NULL,
 
 \item{xnorm}{normalized running variable to estimate pooled effect.}
 
-\item{pooled.opt}{options to be passed to \code{rdrobust()} to calculate pooled estimand.}
+\item{fuzzy}{specifies a fuzzy design. See \code{rdrobust()} for details.}
 
-\item{derivvec}{vector of cutoff-specific order of derivatives. See \code{rdrobust()} for details.}
+\item{derivvec}{vector of cutoff-specific order of derivatives. See
+\code{rdrobust()} for details.}
 
-\item{pvec}{vector of cutoff-specific polynomial orders. See \code{rdrobust()} for details.}
+\item{pooled_opt}{options to be passed to \code{rdrobust()} to calculate
+pooled estimand.}
 
-\item{qvec}{vector of cutoff-specific polynomial orders for bias estimation. See \code{rdrobust()} for details.}
+\item{pvec}{vector of cutoff-specific polynomial orders. See
+\code{rdrobust()} for details.}
 
-\item{hmat}{matrix of cutoff-specific bandwidths. See \code{rdrobust()} for details.}
+\item{qvec}{vector of cutoff-specific polynomial orders for bias estimation.
+See \code{rdrobust()} for details.}
 
-\item{bmat}{matrix of cutoff-specific bandwidths for bias estimation. See \code{rdrobust()} for details.}
+\item{hmat}{matrix of cutoff-specific bandwidths. See \code{rdrobust()} for
+details.}
 
-\item{rhovec}{vector of cutoff-specific values of rho. See \code{rdrobust()} for details.}
+\item{bmat}{matrix of cutoff-specific bandwidths for bias estimation. See
+\code{rdrobust()} for details.}
 
-\item{covsvec}{vector of cutoff-specific covariates. See \code{rdrobust()} for details.}
+\item{rhovec}{vector of cutoff-specific values of rho. See \code{rdrobust()}
+for details.}
 
-\item{kernelvec}{vector of cutoff-speficif kernels. See \code{rdrobust()} for details.}
+\item{covsvec}{vector of cutoff-specific covariates. See \code{rdrobust()}
+for details.}
 
-\item{weightsvec}{vector of cutoff-speficif weights. See \code{rdrobust()} for details.}
+\item{covs_dropvec}{vector indicating whether collinear covariates should be
+dropped at each cutoff. See \code{rdrobust()} for details.}
 
-\item{bwselectvec}{vector of cutoff-speficif bandwidth selection methods. See \code{rdrobust()} for details.}
+\item{kernelvec}{vector of cutoff-speficif kernels. See \code{rdrobust()} for
+details.}
 
-\item{vcevec}{vector of cutoff-speficif variance-covariance estimation methods. See \code{rdrobust()} for details.}
+\item{weightsvec}{vector of cutoff-speficif weights. See \code{rdrobust()}
+for details.}
+
+\item{bwselectvec}{vector of cutoff-speficif bandwidth selection methods. See
+\code{rdrobust()} for details.}
+
+\item{scaleparvec}{vector of cutoff-speficif scale parameters. See
+\code{rdrobust()} for details.}
+
+\item{scaleregulvec}{vector of cutoff-speficif scale regularization
+parameters. See \code{rdrobust()} for details.}
+
+\item{masspointsvec}{vector indicating how to handle repeated values at each
+cutoff. See \code{rdrobust()} for details.}
+
+\item{bwcheckvec}{vector indicating the value of bwcheck at each cutoff. See
+\code{rdrobust()} for details.}
+
+\item{bwrestrictvec}{vector indicating whether computed bandwidths are
+restricted to the range or runvar at each cutoff. See \code{rdrobust()} for
+details.}
+
+\item{stdvarsvec}{vector indicating whether variables are standardized at
+each cutoff. See \code{rdrobust()} for details.}
+
+\item{vcevec}{vector of cutoff-speficif variance-covariance estimation
+methods. See \code{rdrobust()} for details.}
+
+\item{nnmatchvec}{vector of cutoff-speficif nearestneighbors for variance
+estimation. See \code{rdrobust()} for details.}
 
 \item{cluster}{cluster ID variable. See \code{rdrobust()} for details.}
 
-\item{nnmatchvec}{vector of cutoff-speficif nearestneighbors for variance estimation. See \code{rdrobust()} for details.}
-
-\item{scaleparvec}{vector of cutoff-speficif scale parameters. See \code{rdrobust()} for details.}
-
-\item{scaleregulvec}{vector of cutoff-speficif scale regularization parameters. See \code{rdrobust()} for details.}
-
-\item{level}{confidence level for confidence intervals. See \code{rdrobust()} for details.}
-
-\item{fuzzy}{specifies a fuzzy design. See \code{rdrobust()} for details.}
+\item{level}{confidence level for confidence intervals. See \code{rdrobust()}
+for details.}
 
 \item{plot}{plots cutoff-specific and pooled estimates.}
 }
 \value{
 \item{B}{vector of bias-corrected coefficients}
-\item{V}{variance-covariance matrix of the estimators}
-\item{Coefs}{vector of conventional coefficients}
-\item{Nh}{vector of sample sizes within bandwidth at each cutoff}
-\item{CI}{bias corrected confidence intervals}
-\item{H}{bandwidth used at each cutoff}
-\item{Pv}{vector of robust p-values}
+\item{V}{variance-covariance matrix of the estimators} \item{Coefs}{vector of
+conventional coefficients} \item{Nh}{vector of sample sizes within bandwidth
+at each cutoff} \item{CI}{bias corrected confidence intervals}
+\item{H}{bandwidth used at each cutoff} \item{Pv}{vector of robust p-values}
 }
 \description{
 \code{rdms()} analyzes RD designs with cumulative cutoffs or two running variables.
@@ -90,7 +147,7 @@ tmp <- rdms(Y,X,C)
 
 }
 \references{
-M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2019). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2019_rdmulti.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
+M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2020). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2020_Stata.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
 }
 \author{
 Matias Cattaneo, Princeton University. \email{cattaneo@princeton.edu}
