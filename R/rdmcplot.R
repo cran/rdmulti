@@ -1,6 +1,6 @@
 ###################################################################
 # rdmcplot: RD plots with multiple cutoffs
-# !version 0.5 22-Apr-2020
+# !version 0.6 23-Aug-2020
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -18,7 +18,7 @@
 #'
 #' @references
 #'
-#' M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2020). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2020_Stata.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
+#' Cattaneo, M.D., R. Titiunik and G. Vazquez-Bare. (2020). \href{https://rdpackages.github.io/references/Cattaneo-Titiunik-VazquezBare_2020_Stata.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Stata Journal}, forthcoming.
 #'
 #'
 #' @param Y outcome variable.

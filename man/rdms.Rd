@@ -147,7 +147,7 @@ tmp <- rdms(Y,X,C)
 
 }
 \references{
-M.D. Cattaneo, R. Titiunik and G. Vazquez-Bare. (2020). \href{https://sites.google.com/site/rdpackages/rdmulti/Cattaneo-Titiunik-VazquezBare_2020_Stata.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Working paper}.
+Cattaneo, M.D., R. Titiunik and G. Vazquez-Bare. (2020). \href{https://rdpackages.github.io/references/Cattaneo-Titiunik-VazquezBare_2020_Stata.pdf}{Analysis of Regression Discontinuity Designs with Multiple Cutoffs or Multiple Scores}. \emph{Stata Journal}, forthcoming.
 }
 \author{
 Matias Cattaneo, Princeton University. \email{cattaneo@princeton.edu}
