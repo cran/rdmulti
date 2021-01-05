@@ -107,6 +107,7 @@ dropped at each cutoff. See \code{rdrobust()} for details.}
 \item{Ymean}{bin average for Y values}
 \item{CI_l}{lower end of confidence intervals}
 \item{CI_r}{upper end of confidence intervals}
+\item{cfail}{Cutoffs where rdrobust() encountered problems}
 }
 \description{
 \code{rdmcplot()} RD plots with multiple cutoffs.

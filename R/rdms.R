@@ -1,6 +1,6 @@
 ###################################################################
 # rdms: analysis of RD designs with multiple scores
-# !version 0.6 23-Aug-2020
+# !version 0.7 30-Dec-2020
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 

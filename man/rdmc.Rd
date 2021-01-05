@@ -116,21 +116,25 @@ for details.}
 \item{plot}{plots cutoff-specific estimates and weights.}
 }
 \value{
-\item{tau}{pooled estimate} \item{se.rb}{robust bias corrected
-standard error for pooled estimate} \item{pv.rb}{robust bias corrected
-p-value for pooled estimate} \item{ci.rb.l}{left limit of robust bias
-corrected CI for pooled estimate} \item{ci.rb.r}{right limit of robust bias
-corrected CI for pooled estimate} \item{hl}{bandwidth to the left of the
-cutoff for pooled estimate} \item{hr}{bandwidth to the right of the cutoff
-for pooled estimate} \item{Nhl}{sample size within bandwidth to the left of
-the cutoff for pooled estimate} \item{Nhr}{sample size within bandwidth to
-the right of the cutoff for pooled estimate} \item{B}{vector of
-bias-corrected estimates} \item{V}{vector of robust variances of the
-estimates} \item{Coefs}{vector of conventional estimates} \item{W}{vector of
-weights for each cutoff-specific estimate} \item{Nh}{vector of sample sizes
-within bandwidth} \item{CI}{robust bias-corrected confidence intervals}
-\item{H}{matrix of bandwidths} \item{Pv}{vector of robust p-values}
+\item{tau}{pooled estimate}
+\item{se.rb}{robust bias corrected standard error for pooled estimate}
+\item{pv.rb}{robust bias corrected p-value for pooled estimate}
+\item{ci.rb.l}{left limit of robust bias corrected CI for pooled estimate}
+\item{ci.rb.r}{right limit of robust bias corrected CI for pooled estimate}
+\item{hl}{bandwidth to the left of the cutoff for pooled estimate}
+\item{hr}{bandwidth to the right of the cutofffor pooled estimate}
+\item{Nhl}{sample size within bandwidth to the left of the cutoff for pooled estimate}
+\item{Nhr}{sample size within bandwidth to the right of the cutoff for pooled estimate}
+\item{B}{vector of bias-corrected estimates}
+\item{V}{vector of robust variances of the estimates}
+\item{Coefs}{vector of conventional estimates}
+\item{W}{vector of weights for each cutoff-specific estimate}
+\item{Nh}{vector of sample sizes within bandwidth}
+\item{CI}{robust bias-corrected confidence intervals}
+\item{H}{matrix of bandwidths}
+\item{Pv}{vector of robust p-values}
 \item{rdrobust.results}{results from rdrobust for pooled estimate}
+\item{cfail}{Cutoffs where rdrobust() encountered problems}
 }
 \description{
 \code{rdmc()} analyzes RD designs with multiple cutoffs.

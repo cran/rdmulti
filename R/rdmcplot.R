@@ -1,6 +1,6 @@
 ###################################################################
 # rdmcplot: RD plots with multiple cutoffs
-# !version 0.6 23-Aug-2020
+# !version 0.7 30-Dec-2020
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -72,6 +72,8 @@
 #' \item{Ymean}{bin average for Y values}
 #' \item{CI_l}{lower end of confidence intervals}
 #' \item{CI_r}{upper end of confidence intervals}
+#' \item{cfail}{Cutoffs where rdrobust() encountered problems}
+
 #'
 #'
 #' @examples
@@ -132,13 +134,15 @@ rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
   YMEAN <- matrix(NA,nrow=length(Y),ncol=cnum)
   CI_l <- matrix(NA,nrow=length(Y),ncol=cnum)
   CI_r <- matrix(NA,nrow=length(Y),ncol=cnum)
+  Cfail <- numeric()
 
 
   #################################################################
   # Construct variables for plots
   #################################################################
 
-  count = 1
+  count <- 1
+  count_fail <- 0
   for (c in clist){
 
     yc <- Y[C==c & X<=c+haux[count,2] & X>=c-haux[count,1]]
@@ -149,49 +153,55 @@ rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
     xc0 <- xc[dc==0]
     xc1 <- xc[dc==1]
 
-    aux <- rdrobust::rdplot(yc,xc,c=c,
-                           nbins=nbinsmat[count,],
-                           binselect=binselectvec[count],
-                           scale=scalevec[count],
-                           support=supportmat[count,],
-                           p=pvec[count],
-                           h=hmat[count,],
-                           kernel=kernelvec[count],
-                           weights=weightsvec[count],
-                           covs=covsvec[count],
-                           covs_eval=covs_evalvec[count],
-                           covs_drop=covs_dropvec[count],
-                           ci=ci,
-                           hide=TRUE)
+    aux <- try(rdrobust::rdplot(yc,xc,c=c,
+                                nbins=nbinsmat[count,],
+                                binselect=binselectvec[count],
+                                scale=scalevec[count],
+                                support=supportmat[count,],
+                                p=pvec[count],
+                                h=hmat[count,],
+                                kernel=kernelvec[count],
+                                weights=weightsvec[count],
+                                covs=covsvec[count],
+                                covs_eval=covs_evalvec[count],
+                                covs_drop=covs_dropvec[count],
+                                ci=ci,
+                                hide=TRUE),
+               silent=TRUE)
 
-    xmean <- aux$vars_bins[,2]
-    ymean <- aux$vars_bins[,3]
-    x0 <- aux$vars_poly[aux$vars_poly[,1]<c,1]
-    yhat0 <- aux$vars_poly[aux$vars_poly[,1]<c,2]
-    x1 <- aux$vars_poly[aux$vars_poly[,1]>c,1]
-    yhat1 <- aux$vars_poly[aux$vars_poly[,1]>c,2]
+    if (class(aux)!="try-error"){
+      xmean <- aux$vars_bins[,2]
+      ymean <- aux$vars_bins[,3]
+      x0 <- aux$vars_poly[aux$vars_poly[,1]<c,1]
+      yhat0 <- aux$vars_poly[aux$vars_poly[,1]<c,2]
+      x1 <- aux$vars_poly[aux$vars_poly[,1]>c,1]
+      yhat1 <- aux$vars_poly[aux$vars_poly[,1]>c,2]
 
-    length(xmean) <- length(Y)
-    length(ymean) <- length(Y)
-    length(x0) <- length(Y)
-    length(yhat0) <- length(Y)
-    length(x1) <- length(Y)
-    length(yhat1) <- length(Y)
+      length(xmean) <- length(Y)
+      length(ymean) <- length(Y)
+      length(x0) <- length(Y)
+      length(yhat0) <- length(Y)
+      length(x1) <- length(Y)
+      length(yhat1) <- length(Y)
 
-    XMEAN[,count] <- xmean
-    YMEAN[,count] <- ymean
-    X0[,count] <- x0
-    X1[,count] <- x1
-    YHAT0[,count] <- yhat0
-    YHAT1[,count] <- yhat1
+      XMEAN[,count] <- xmean
+      YMEAN[,count] <- ymean
+      X0[,count] <- x0
+      X1[,count] <- x1
+      YHAT0[,count] <- yhat0
+      YHAT1[,count] <- yhat1
 
-    if(!is.null(ci)){
-      ci_l <- aux$vars_bins[,8]
-      ci_r <- aux$vars_bins[,9]
-      length(ci_l) <- length(Y)
-      length(ci_r) <- length(Y)
-      CI_l[,count] <- ci_l
-      CI_r[,count] <- ci_r
+      if(!is.null(ci)){
+        ci_l <- aux$vars_bins[,8]
+        ci_r <- aux$vars_bins[,9]
+        length(ci_l) <- length(Y)
+        length(ci_r) <- length(Y)
+        CI_l[,count] <- ci_l
+        CI_r[,count] <- ci_r
+      }
+    } else{
+      Cfail <- c(Cfail,c)
+      count_fail <- count_fail + 1
     }
 
     count <- count + 1
@@ -286,6 +296,10 @@ rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
     print(rdmc_plot)
   }
 
+  if (count_fail>0){
+    warning("rdplot() could not run in one or more cutoffs.")
+  }
+
   #################################################################
   # Return values
   #################################################################
@@ -313,7 +327,8 @@ rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
                   Ymean = Ymean,
                   rdmc_plot = rdmc_plot,
                   CI_l = CI_l,
-                  CI_r = CI_r)
+                  CI_r = CI_r,
+                  cfail = Cfail)
   }
 
 

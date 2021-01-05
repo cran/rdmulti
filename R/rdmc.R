@@ -1,6 +1,6 @@
 ###################################################################
 # rdmc: analysis of RD designs with multiple cutoffs
-# !version 0.6 23-Aug-2020
+# !version 0.7 30-Dec-2020
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -74,21 +74,26 @@
 #' @param plot plots cutoff-specific estimates and weights.
 #'
 #'
-#' @return \item{tau}{pooled estimate} \item{se.rb}{robust bias corrected
-#' standard error for pooled estimate} \item{pv.rb}{robust bias corrected
-#' p-value for pooled estimate} \item{ci.rb.l}{left limit of robust bias
-#' corrected CI for pooled estimate} \item{ci.rb.r}{right limit of robust bias
-#' corrected CI for pooled estimate} \item{hl}{bandwidth to the left of the
-#' cutoff for pooled estimate} \item{hr}{bandwidth to the right of the cutoff
-#' for pooled estimate} \item{Nhl}{sample size within bandwidth to the left of
-#' the cutoff for pooled estimate} \item{Nhr}{sample size within bandwidth to
-#' the right of the cutoff for pooled estimate} \item{B}{vector of
-#' bias-corrected estimates} \item{V}{vector of robust variances of the
-#' estimates} \item{Coefs}{vector of conventional estimates} \item{W}{vector of
-#' weights for each cutoff-specific estimate} \item{Nh}{vector of sample sizes
-#' within bandwidth} \item{CI}{robust bias-corrected confidence intervals}
-#' \item{H}{matrix of bandwidths} \item{Pv}{vector of robust p-values}
+#' @return
+#' \item{tau}{pooled estimate}
+#' \item{se.rb}{robust bias corrected standard error for pooled estimate}
+#' \item{pv.rb}{robust bias corrected p-value for pooled estimate}
+#' \item{ci.rb.l}{left limit of robust bias corrected CI for pooled estimate}
+#' \item{ci.rb.r}{right limit of robust bias corrected CI for pooled estimate}
+#' \item{hl}{bandwidth to the left of the cutoff for pooled estimate}
+#' \item{hr}{bandwidth to the right of the cutofffor pooled estimate}
+#' \item{Nhl}{sample size within bandwidth to the left of the cutoff for pooled estimate}
+#' \item{Nhr}{sample size within bandwidth to the right of the cutoff for pooled estimate}
+#' \item{B}{vector of bias-corrected estimates}
+#' \item{V}{vector of robust variances of the estimates}
+#' \item{Coefs}{vector of conventional estimates}
+#' \item{W}{vector of weights for each cutoff-specific estimate}
+#' \item{Nh}{vector of sample sizes within bandwidth}
+#' \item{CI}{robust bias-corrected confidence intervals}
+#' \item{H}{matrix of bandwidths}
+#' \item{Pv}{vector of robust p-values}
 #' \item{rdrobust.results}{results from rdrobust for pooled estimate}
+#' \item{cfail}{Cutoffs where rdrobust() encountered problems}
 #'
 #'
 #' @examples
@@ -151,6 +156,7 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
   Pv <- matrix(NA,nrow=1,ncol=cnum+2)
   H <- matrix(NA,nrow=2,ncol=cnum+2)
   W <- matrix(NA,nrow=1,ncol=cnum)
+  Cfail <- numeric()
 
   #################################################################
   # Calculate pooled estimate
@@ -178,56 +184,79 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
   #################################################################
 
   count <- 1
+  count_fail <- 0
   for (c in clist){
 
-    yc <- Y[C==c]
-    xc <- Xc[C==c]
+    yc <- Y[abs(C-c)<=.Machine$double.eps]
+    xc <- Xc[abs(C-c)<=.Machine$double.eps]
 
-    rdr.tmp <- rdrobust::rdrobust(yc,xc,
-                                  fuzzy=fuzzy,
-                                  deriv=derivvec[count],
-                                  p=pvec[count],
-                                  q=qvec[count],
-                                  h=hmat[count,],
-                                  b=bmat[count,],
-                                  rho=rhovec[count],
-                                  covs=covsvec[count],
-                                  covs_drop=covs_dropvec[count],
-                                  kernel=kernelvec[count],
-                                  weights=weightsvec[count],
-                                  bwselect=bwselectvec[count],
-                                  scalepar=scaleparvec[count],
-                                  scaleregul=scaleregulvec[count],
-                                  masspoints=masspointsvec[count],
-                                  bwcheck=bwcheckvec[count],
-                                  bwrestrict=bwrestrictvec[count],
-                                  stdvars=stdvarsvec[count],
-                                  vce=vcevec[count],
-                                  nnmatch=nnmatchvec[count],
-                                  cluster=cluster,
-                                  level=level)
+    rdr.tmp <- try(rdrobust::rdrobust(yc,xc,
+                                      fuzzy=fuzzy,
+                                      deriv=derivvec[count],
+                                      p=pvec[count],
+                                      q=qvec[count],
+                                      h=hmat[count,],
+                                      b=bmat[count,],
+                                      rho=rhovec[count],
+                                      covs=covsvec[count],
+                                      covs_drop=covs_dropvec[count],
+                                      kernel=kernelvec[count],
+                                      weights=weightsvec[count],
+                                      bwselect=bwselectvec[count],
+                                      scalepar=scaleparvec[count],
+                                      scaleregul=scaleregulvec[count],
+                                      masspoints=masspointsvec[count],
+                                      bwcheck=bwcheckvec[count],
+                                      bwrestrict=bwrestrictvec[count],
+                                      stdvars=stdvarsvec[count],
+                                      vce=vcevec[count],
+                                      nnmatch=nnmatchvec[count],
+                                      cluster=cluster,
+                                      level=level),
+                   silent=TRUE)
 
-    B[1,count] <- rdr.tmp$Estimate[2]
-    V[1,count] <- rdr.tmp$se[3]^2
-    Coefs[1,count] <- rdr.tmp$Estimate[1]
-    CI[,count] <- rdr.tmp$ci[3,]
-    H[,count] <- rdr.tmp$bws[1,]
-    Nh[,count] <- rdr.tmp$N_h
-    Pv[1,count] <- rdr.tmp$pv[3]
+    if (class(rdr.tmp)!="try-error"){
+      B[1,count] <- rdr.tmp$Estimate[2]
+      V[1,count] <- rdr.tmp$se[3]^2
+      Coefs[1,count] <- rdr.tmp$Estimate[1]
+      CI[,count] <- rdr.tmp$ci[3,]
+      H[,count] <- rdr.tmp$bws[1,]
+      Nh[,count] <- rdr.tmp$N_h
+      Pv[1,count] <- rdr.tmp$pv[3]
+    } else{
+      Cfail <- c(Cfail,c)
+      count_fail <- count_fail + 1
+    }
 
     count <- count + 1
+
   }
 
   # Weights
 
-  W[1,] <- colSums(Nh[,1:cnum])/sum(Nh[,1:cnum])
+  W[1,] <- colSums(Nh[,1:cnum],na.rm=TRUE)/sum(Nh[,1:cnum],na.rm=TRUE)
+  W[is.na(W)] <- 0
 
   # Weighted estimate
 
-  B[1,cnum+1] <- B[1,1:cnum]%*%t(W)
-  V[1,cnum+1] <- V[1,1:cnum]%*%t(W^2)
-  Coefs[1,cnum+1] <- Coefs[1,1:cnum]%*%t(W)
-  Nh[,cnum+1] <- rowSums(Nh[,1:cnum])
+  Baux <- B
+  Vaux <- V
+  Coefsaux <- Coefs
+  Baux[is.na(Baux)] <- 0
+  Vaux[is.na(Vaux)] <- 0
+  Coefsaux[is.na(Coefsaux)] <- 0
+
+#  B[1,cnum+1] <- B[1,1:cnum]%*%t(W)
+#  V[1,cnum+1] <- V[1,1:cnum]%*%t(W^2)
+#  Coefs[1,cnum+1] <- Coefs[1,1:cnum]%*%t(W)
+
+  B[1,cnum+1] <- Baux[1,1:cnum]%*%t(W)
+  V[1,cnum+1] <- Vaux[1,1:cnum]%*%t(W^2)
+  Coefs[1,cnum+1] <- Coefsaux[1,1:cnum]%*%t(W)
+
+#  Nh[,cnum+1] <- rowSums(Nh[,1:cnum])
+  Nh[,cnum+1] <- rowSums(Nh[,1:cnum],na.rm=TRUE)
+
   CI[1,cnum+1] <- B[1,cnum+1]-sqrt(V[1,cnum+1])*qnorm(1-(1-level/100)/2)
   CI[2,cnum+1] <- B[1,cnum+1]+sqrt(V[1,cnum+1])*qnorm(1-(1-level/100)/2)
   Pv[1,cnum+1] <- 2*(1-pnorm(abs(B[1,cnum+1]/sqrt(V[1,cnum+1]))))
@@ -256,7 +285,7 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
   cat('\n')
 
   for (k in 1:cnum){
-    cat(format(sprintf('%4.2f',clist[k]),        width=11))
+    cat(format(sprintf('%4.3f',clist[k]),        width=11))
     cat(format(sprintf('%7.3f',Coefs[k]),        width=9))
     cat(format(sprintf('%1.3f',Pv[k]),           width=9))
     cat(format(sprintf('%4.3f',CI[1,k]),         width=10))
@@ -292,6 +321,9 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
   cat('\n')
   cat(paste0(rep('=',80),collapse='')); cat('\n')
 
+  if (count_fail>0){
+    warning("rdrobust() could not run in one or more cutoffs.")
+  }
 
   #################################################################
   # Plots
@@ -299,7 +331,7 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
 
   if (plot==TRUE){
 
-    ylim <- c(min(CI*1.3),max(CI)*1.3)
+    ylim <- c(min(CI,na.rm=TRUE)*1.3,max(CI,na.rm=TRUE)*1.3)
     xlim <- c(min(clist),max(clist))
 
     par(mfrow=c(1,2))
@@ -354,7 +386,8 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
                 CI = CI,
                 H = H,
                 Pv = Pv,
-                rdrobust.results = rdr)
+                rdrobust.results = rdr,
+                cfail = Cfail)
 
   return(output)
 
