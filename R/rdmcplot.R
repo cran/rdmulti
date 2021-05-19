@@ -1,6 +1,6 @@
 ###################################################################
 # rdmcplot: RD plots with multiple cutoffs
-# !version 0.7 30-Dec-2020
+# !version 0.8 19-May-2021
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -40,11 +40,11 @@
 #'   details.
 #' @param weightsvec vector of cutoff-specific weights. See \code{rdplot()} for
 #'   details.
-#' @param covsvec vector of cutoff-specific covariates. See \code{rdplot()} for
+#' @param covs_mat matrix of covariates. See \code{rdplot()} for
 #'   details.
+#' @param covs_list list of of covariates to be used in each cutoff.
 #' @param covs_evalvec vector indicating the evaluation point for additional
-#'   covariates should be dropped at each cutoff. See \code{rdrobust()} for
-#'   details.
+#'   covariates. See \code{rdrobust()} for details.
 #' @param covs_dropvec vector indicating whether collinear covariates should be
 #'   dropped at each cutoff. See \code{rdrobust()} for details.
 #' @param ci adds confidence intervals of the specified level to the plot. See
@@ -89,7 +89,7 @@
 
 rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
                      supportmat=NULL,pvec=NULL,hmat=NULL,kernelvec=NULL,
-                     weightsvec=NULL,covsvec=NULL,covs_evalvec=NULL,
+                     weightsvec=NULL,covs_mat=NULL,covs_list=NULL,covs_evalvec=NULL,
                      covs_dropvec=NULL,ci=NULL,col_bins=NULL,pch_bins=NULL,
                      col_poly=NULL,lty_poly=NULL,col_xline=NULL,lty_xline=NULL,
                      nobins=FALSE,nopoly=FALSE,noxline=FALSE,nodraw=FALSE){
@@ -125,6 +125,12 @@ rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
   if (is.null(kernelvec)) kernelvec <- rep('uni',cnum)
   if (is.null(covs_evalvec)) covs_evalvec <- rep(0,cnum)
   if (is.null(covs_dropvec)) covs_dropvec <- rep(TRUE,cnum)
+  if (!is.null(covs_mat)){
+    covs_mat <- as.matrix(covs_mat)
+    if (!is.null(covs_list)){
+      if (length(covs_list)!=cnum) stop('Elements in covs_list should equal number of cutoffs')
+    }
+  }
 
   X0 <- matrix(NA,nrow=length(Y),ncol=cnum)
   X1 <- matrix(NA,nrow=length(Y),ncol=cnum)
@@ -153,6 +159,17 @@ rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
     xc0 <- xc[dc==0]
     xc1 <- xc[dc==1]
 
+    if (!is.null(covs_mat)){
+      covs_mat_c <- covs_mat[C==c & X<=c+haux[count,2] & X>=c-haux[count,1],]
+      if (!is.null(covs_list)){
+        covs_aux <- covs_mat_c[,covs_list[[count]]]
+      } else{
+        covs_aux <- covs_mat_c
+      }
+    } else {
+      covs_aux <- NULL
+    }
+
     aux <- try(rdrobust::rdplot(yc,xc,c=c,
                                 nbins=nbinsmat[count,],
                                 binselect=binselectvec[count],
@@ -162,7 +179,7 @@ rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
                                 h=hmat[count,],
                                 kernel=kernelvec[count],
                                 weights=weightsvec[count],
-                                covs=covsvec[count],
+                                covs=covs_aux,
                                 covs_eval=covs_evalvec[count],
                                 covs_drop=covs_dropvec[count],
                                 ci=ci,
@@ -172,6 +189,10 @@ rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
     if (class(aux)!="try-error"){
       xmean <- aux$vars_bins[,2]
       ymean <- aux$vars_bins[,3]
+
+      xmean <- xmean[!is.na(xmean)]
+      ymean <- ymean[!is.na(ymean)]
+
       x0 <- aux$vars_poly[aux$vars_poly[,1]<c,1]
       yhat0 <- aux$vars_poly[aux$vars_poly[,1]<c,2]
       x1 <- aux$vars_poly[aux$vars_poly[,1]>c,1]
@@ -264,31 +285,24 @@ rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
   rdmc_plot <- ggplot() + theme_bw() + labs(x='Running variable', y='Outcome')
 
   if (nobins==FALSE){
-    rdmc_plot <- rdmc_plot + geom_point(aes(x=Xmean[,1],y=Ymean[,1]),col=col_bins[1],shape=pch_bins[1],na.rm=TRUE)
-    for (c in 2:cnum){
-      rdmc_plot <- rdmc_plot + geom_point(aes(x=Xmean[,c],y=Ymean[,c]),col=col_bins[c],shape=pch_bins[c],na.rm=TRUE)
+    for (c in 1:cnum){
+      rdmc_plot <- rdmc_plot + geom_point(aes_string(x=Xmean[,c],y=Ymean[,c]),col=col_bins[c],shape=pch_bins[c],na.rm=TRUE)
+    }
+  }
+  if (!is.null(ci)){
+    for (c in 1:cnum){
+      rdmc_plot <- rdmc_plot + geom_errorbar(aes_string(x=Xmean[,c],ymin=CI_l[,c],ymax=CI_r[,c]),col=col_bins[c],linetype=1)
     }
   }
   if (nopoly==FALSE){
-    rdmc_plot <- rdmc_plot + geom_line(aes(x=X0[,1],y=Yhat0[,1]),col=col_poly[1],linetype=lty_poly[1],na.rm=TRUE) +
-      geom_line(aes(x=X1[,1],y=Yhat1[,1]),col=col_poly[1],linetype=lty_poly[1],na.rm=TRUE)
-
-    for (c in 2:cnum){
-      rdmc_plot <- rdmc_plot + geom_line(aes(x=X0[,c],y=Yhat0[,c]),col=col_poly[c],linetype=lty_poly[c],na.rm=TRUE) +
-        geom_line(aes(x=X1[,c],y=Yhat1[,c]),col=col_poly[c],linetype=lty_poly[c],na.rm=TRUE)
+    for (c in 1:cnum){
+      rdmc_plot <- rdmc_plot + geom_line(aes_string(x=X0[,c],y=Yhat0[,c]),col=col_poly[c],linetype=lty_poly[c],na.rm=TRUE) +
+        geom_line(aes_string(x=X1[,c],y=Yhat1[,c]),col=col_poly[c],linetype=lty_poly[c],na.rm=TRUE)
     }
   }
   if (noxline==FALSE){
-    rdmc_plot <- rdmc_plot + geom_vline(xintercept=clist[1],col=col_xline[1],linetype=lty_xline[c])
-    for (c in 2:cnum){
+    for (c in 1:cnum){
       rdmc_plot <- rdmc_plot + geom_vline(xintercept=clist[c],col=col_xline[c],linetype=lty_xline[c])
-    }
-  }
-
-  if (!is.null(ci)){
-    rdmc_plot <- rdmc_plot + geom_errorbar(aes(x=Xmean[,1], ymin=CI_l[,1], ymax=CI_r[,1]),col=col_bins[1],linetype=1)
-    for (c in 2:cnum){
-      rdmc_plot <- rdmc_plot + geom_errorbar(aes(x=Xmean[,c], ymin=CI_l[,c], ymax=CI_r[,c]),col=col_bins[c],linetype=1)
     }
   }
 
@@ -304,8 +318,6 @@ rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
   # Return values
   #################################################################
 
-
-
   if (is.null(ci)){
     output <- list(clist = clist,
                   cnum = cnum,
@@ -315,7 +327,8 @@ rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
                   Yhat1 = Yhat1,
                   Xmean = Xmean,
                   Ymean = Ymean,
-                  rdmc_plot = rdmc_plot)
+                  rdmc_plot = rdmc_plot,
+                  cfail = Cfail)
   }  else {
     output <- list(clist = clist,
                   cnum = cnum,

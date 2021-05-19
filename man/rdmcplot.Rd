@@ -16,7 +16,8 @@ rdmcplot(
   hmat = NULL,
   kernelvec = NULL,
   weightsvec = NULL,
-  covsvec = NULL,
+  covs_mat = NULL,
+  covs_list = NULL,
   covs_evalvec = NULL,
   covs_dropvec = NULL,
   ci = NULL,
@@ -63,12 +64,13 @@ details.}
 \item{weightsvec}{vector of cutoff-specific weights. See \code{rdplot()} for
 details.}
 
-\item{covsvec}{vector of cutoff-specific covariates. See \code{rdplot()} for
+\item{covs_mat}{matrix of covariates. See \code{rdplot()} for
 details.}
 
+\item{covs_list}{list of of covariates to be used in each cutoff.}
+
 \item{covs_evalvec}{vector indicating the evaluation point for additional
-covariates should be dropped at each cutoff. See \code{rdrobust()} for
-details.}
+covariates. See \code{rdrobust()} for details.}
 
 \item{covs_dropvec}{vector indicating whether collinear covariates should be
 dropped at each cutoff. See \code{rdrobust()} for details.}

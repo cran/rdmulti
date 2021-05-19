@@ -1,6 +1,6 @@
 ###################################################################
 # rdmulti: analysis of RD designs with multiple cutoffs or scores
-# !version 0.7 30-Dic-2020
+# !version 0.8 19-May-2021
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -47,6 +47,7 @@
 #' @importFrom graphics plot
 #' @importFrom graphics points
 #' @importFrom graphics polygon
+#' @importFrom grDevices rgb
 #' @importFrom stats poly
 #' @importFrom stats pnorm
 #' @importFrom stats qnorm

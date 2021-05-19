@@ -1,6 +1,6 @@
 ###################################################################
 # rdmc: analysis of RD designs with multiple cutoffs
-# !version 0.7 30-Dec-2020
+# !version 0.8 19-May-2021
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -41,19 +41,20 @@
 #'   \code{rdrobust()} for details.
 #' @param rhovec vector of cutoff-specific values of rho. See \code{rdrobust()}
 #'   for details.
-#' @param covsvec vector of cutoff-specific covariates. See \code{rdrobust()}
+#' @param covs_mat matrix of covariates. See \code{rdrobust()}
 #'   for details.
+#' @param covs_list list of covariates to be used in each cutoff.
 #' @param covs_dropvec vector indicating whether collinear covariates should be
 #'   dropped at each cutoff. See \code{rdrobust()} for details.
-#' @param kernelvec vector of cutoff-speficif kernels. See \code{rdrobust()} for
+#' @param kernelvec vector of cutoff-specific kernels. See \code{rdrobust()} for
 #'   details.
-#' @param weightsvec vector of cutoff-speficif weights. See \code{rdrobust()}
+#' @param weightsvec vector of cutoff-specific weights. See \code{rdrobust()}
 #'   for details.
-#' @param bwselectvec vector of cutoff-speficif bandwidth selection methods. See
+#' @param bwselectvec vector of cutoff-specific bandwidth selection methods. See
 #'   \code{rdrobust()} for details.
-#' @param scaleparvec vector of cutoff-speficif scale parameters. See
+#' @param scaleparvec vector of cutoff-specific scale parameters. See
 #'   \code{rdrobust()} for details.
-#' @param scaleregulvec vector of cutoff-speficif scale regularization
+#' @param scaleregulvec vector of cutoff-specific scale regularization
 #'   parameters. See \code{rdrobust()} for details.
 #' @param masspointsvec vector indicating how to handle repeated values at each
 #'   cutoff. See \code{rdrobust()} for details.
@@ -64,9 +65,9 @@
 #'   details.
 #' @param stdvarsvec vector indicating whether variables are standardized at
 #'   each cutoff. See \code{rdrobust()} for details.
-#' @param vcevec vector of cutoff-speficif variance-covariance estimation
+#' @param vcevec vector of cutoff-specific variance-covariance estimation
 #'   methods. See \code{rdrobust()} for details.
-#' @param nnmatchvec vector of cutoff-speficif nearestneighbors for variance
+#' @param nnmatchvec vector of cutoff-specific nearestneighbors for variance
 #'   estimation. See \code{rdrobust()} for details.
 #' @param cluster cluster ID variable. See \code{rdrobust()} for details.
 #' @param level confidence level for confidence intervals. See \code{rdrobust()}
@@ -109,7 +110,7 @@
 
 rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
                 pvec=NULL,qvec=NULL,hmat=NULL,bmat=NULL,rhovec=NULL,
-                covsvec=NULL,covs_dropvec=NULL,kernelvec=NULL,weightsvec=NULL,
+                covs_mat=NULL,covs_list=NULL,covs_dropvec=NULL,kernelvec=NULL,weightsvec=NULL,
                 bwselectvec=NULL,scaleparvec=NULL,scaleregulvec=NULL,
                 masspointsvec=NULL,bwcheckvec=NULL,bwrestrictvec=NULL,
                 stdvarsvec=NULL,vcevec=NULL,nnmatchvec=NULL,cluster=NULL,
@@ -147,6 +148,12 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
   if (is.null(masspointsvec)) masspointsvec <- rep('adjust',cnum)
   if (is.null(bwrestrictvec)) bwrestrictvec <- rep(TRUE,cnum)
   if (is.null(stdvarsvec)) stdvarsvec <- rep(FALSE,cnum)
+  if (!is.null(covs_mat)){
+    covs_mat <- as.matrix(covs_mat)
+    if (!is.null(covs_list)){
+      if (length(covs_list)!=cnum) stop('Elements in covs_list should equal number of cutoffs')
+    }
+  }
 
   B <- matrix(NA,nrow=1,ncol=cnum+2)
   V <- matrix(NA,nrow=1,ncol=cnum+2)
@@ -190,6 +197,17 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
     yc <- Y[abs(C-c)<=.Machine$double.eps]
     xc <- Xc[abs(C-c)<=.Machine$double.eps]
 
+    if (!is.null(covs_mat)){
+      covs_mat_c <- covs_mat[abs(C-c)<=.Machine$double.eps,]
+      if (!is.null(covs_list)){
+        covs_aux <- covs_mat_c[,covs_list[[count]]]
+      } else{
+        covs_aux <- covs_mat_c
+      }
+    } else {
+      covs_aux <- NULL
+    }
+
     rdr.tmp <- try(rdrobust::rdrobust(yc,xc,
                                       fuzzy=fuzzy,
                                       deriv=derivvec[count],
@@ -198,7 +216,7 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
                                       h=hmat[count,],
                                       b=bmat[count,],
                                       rho=rhovec[count],
-                                      covs=covsvec[count],
+                                      covs=covs_aux,
                                       covs_drop=covs_dropvec[count],
                                       kernel=kernelvec[count],
                                       weights=weightsvec[count],
@@ -246,15 +264,10 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
   Vaux[is.na(Vaux)] <- 0
   Coefsaux[is.na(Coefsaux)] <- 0
 
-#  B[1,cnum+1] <- B[1,1:cnum]%*%t(W)
-#  V[1,cnum+1] <- V[1,1:cnum]%*%t(W^2)
-#  Coefs[1,cnum+1] <- Coefs[1,1:cnum]%*%t(W)
-
   B[1,cnum+1] <- Baux[1,1:cnum]%*%t(W)
   V[1,cnum+1] <- Vaux[1,1:cnum]%*%t(W^2)
   Coefs[1,cnum+1] <- Coefsaux[1,1:cnum]%*%t(W)
 
-#  Nh[,cnum+1] <- rowSums(Nh[,1:cnum])
   Nh[,cnum+1] <- rowSums(Nh[,1:cnum],na.rm=TRUE)
 
   CI[1,cnum+1] <- B[1,cnum+1]-sqrt(V[1,cnum+1])*qnorm(1-(1-level/100)/2)
@@ -338,17 +351,20 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
 
     plot(NA,ylim=ylim,xlim=xlim,ylab='Treatment effect',xlab='Cutoff')
 
-    polygon(x=c(min(clist),min(clist),max(clist),max(clist)),y=c(CI[1,1],CI[2,1],CI[2,1],CI[1,1]),
+    polygon(x=c(min(clist),min(clist),max(clist),max(clist)),y=c(CI[1,cnum+2],CI[2,cnum+2],CI[2,cnum+2],CI[1,cnum+2]),
             border = NA,col='gray87')
+    polygon(x=c(min(clist),min(clist),max(clist),max(clist)),y=c(CI[1,cnum+1],CI[2,cnum+1],CI[2,cnum+1],CI[1,cnum+1]),
+            border = NA,col=rgb(139/255,0,0,0.2))
     points(clist,Coefs[1:cnum],col='darkblue',pch=16)
-    arrows(clist,CI[1,-1],clist,CI[2,-1],length=0.05,angle=90,code=3)
-    abline(h=rdr$Estimate[1],col='gray34')
+    arrows(clist,CI[1,1:cnum],clist,CI[2,1:cnum],length=0.05,angle=90,code=3)
+    abline(h=Coefs[1,cnum+2],col='gray34')
+    abline(h=Coefs[1,cnum+1],col='darkred')
     abline(h=0,lty='dotted')
 
-    legend('bottomright',legend=c('Estimates','Pooled estimate'),pch=c(16,NA),lty=c(NA,1),
-           col=c('darkblue','gray34'),bty='n',cex=0.75)
+    legend('bottomright',legend=c('Estimates','Weighted estimate','Pooled estimate'),pch=c(16,NA,NA),lty=c(NA,1,1),
+           col=c('darkblue','darkred','gray34'),bty='n',cex=0.75)
 
-    mtext('Bars are 95% CIs for estimates. \nShaded area is the 95% CI for pooled.',cex=0.8)
+    mtext('Bars are 95% CIs for estimates. \nShaded area is the 95% CI for weighted and pooled.',cex=0.8)
 
     barplot(W,xlab='Cutoff',ylab='Weight',names.arg=clist,space=1.5)
 

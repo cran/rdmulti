@@ -21,7 +21,8 @@ rdms(
   hmat = NULL,
   bmat = NULL,
   rhovec = NULL,
-  covsvec = NULL,
+  covs_mat = NULL,
+  covs_list = NULL,
   covs_dropvec = NULL,
   kernelvec = NULL,
   weightsvec = NULL,
@@ -79,25 +80,26 @@ details.}
 \item{rhovec}{vector of cutoff-specific values of rho. See \code{rdrobust()}
 for details.}
 
-\item{covsvec}{vector of cutoff-specific covariates. See \code{rdrobust()}
-for details.}
+\item{covs_mat}{matrix of covariates. See \code{rdplot()} for details.}
+
+\item{covs_list}{list of of covariates to be used in each cutoff.}
 
 \item{covs_dropvec}{vector indicating whether collinear covariates should be
 dropped at each cutoff. See \code{rdrobust()} for details.}
 
-\item{kernelvec}{vector of cutoff-speficif kernels. See \code{rdrobust()} for
+\item{kernelvec}{vector of cutoff-specific kernels. See \code{rdrobust()} for
 details.}
 
-\item{weightsvec}{vector of cutoff-speficif weights. See \code{rdrobust()}
+\item{weightsvec}{vector of cutoff-specific weights. See \code{rdrobust()}
 for details.}
 
-\item{bwselectvec}{vector of cutoff-speficif bandwidth selection methods. See
+\item{bwselectvec}{vector of cutoff-specific bandwidth selection methods. See
 \code{rdrobust()} for details.}
 
-\item{scaleparvec}{vector of cutoff-speficif scale parameters. See
+\item{scaleparvec}{vector of cutoff-specific scale parameters. See
 \code{rdrobust()} for details.}
 
-\item{scaleregulvec}{vector of cutoff-speficif scale regularization
+\item{scaleregulvec}{vector of cutoff-specific scale regularization
 parameters. See \code{rdrobust()} for details.}
 
 \item{masspointsvec}{vector indicating how to handle repeated values at each
@@ -113,10 +115,10 @@ details.}
 \item{stdvarsvec}{vector indicating whether variables are standardized at
 each cutoff. See \code{rdrobust()} for details.}
 
-\item{vcevec}{vector of cutoff-speficif variance-covariance estimation
+\item{vcevec}{vector of cutoff-specific variance-covariance estimation
 methods. See \code{rdrobust()} for details.}
 
-\item{nnmatchvec}{vector of cutoff-speficif nearestneighbors for variance
+\item{nnmatchvec}{vector of cutoff-specific nearest neighbors for variance
 estimation. See \code{rdrobust()} for details.}
 
 \item{cluster}{cluster ID variable. See \code{rdrobust()} for details.}

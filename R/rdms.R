@@ -1,6 +1,6 @@
 ###################################################################
 # rdms: analysis of RD designs with multiple scores
-# !version 0.7 30-Dec-2020
+# !version 0.8 19-May-2021
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -44,19 +44,19 @@
 #'   \code{rdrobust()} for details.
 #' @param rhovec vector of cutoff-specific values of rho. See \code{rdrobust()}
 #'   for details.
-#' @param covsvec vector of cutoff-specific covariates. See \code{rdrobust()}
-#'   for details.
+#' @param covs_mat matrix of covariates. See \code{rdplot()} for details.
+#' @param covs_list list of of covariates to be used in each cutoff.
 #' @param covs_dropvec vector indicating whether collinear covariates should be
 #'   dropped at each cutoff. See \code{rdrobust()} for details.
-#' @param kernelvec vector of cutoff-speficif kernels. See \code{rdrobust()} for
+#' @param kernelvec vector of cutoff-specific kernels. See \code{rdrobust()} for
 #'   details.
-#' @param weightsvec vector of cutoff-speficif weights. See \code{rdrobust()}
+#' @param weightsvec vector of cutoff-specific weights. See \code{rdrobust()}
 #'   for details.
-#' @param bwselectvec vector of cutoff-speficif bandwidth selection methods. See
+#' @param bwselectvec vector of cutoff-specific bandwidth selection methods. See
 #'   \code{rdrobust()} for details.
-#' @param scaleparvec vector of cutoff-speficif scale parameters. See
+#' @param scaleparvec vector of cutoff-specific scale parameters. See
 #'   \code{rdrobust()} for details.
-#' @param scaleregulvec vector of cutoff-speficif scale regularization
+#' @param scaleregulvec vector of cutoff-specific scale regularization
 #'   parameters. See \code{rdrobust()} for details.
 #' @param masspointsvec vector indicating how to handle repeated values at each
 #'   cutoff. See \code{rdrobust()} for details.
@@ -67,9 +67,9 @@
 #'   details.
 #' @param stdvarsvec vector indicating whether variables are standardized at
 #'   each cutoff. See \code{rdrobust()} for details.
-#' @param vcevec vector of cutoff-speficif variance-covariance estimation
+#' @param vcevec vector of cutoff-specific variance-covariance estimation
 #'   methods. See \code{rdrobust()} for details.
-#' @param nnmatchvec vector of cutoff-speficif nearestneighbors for variance
+#' @param nnmatchvec vector of cutoff-specific nearest neighbors for variance
 #'   estimation. See \code{rdrobust()} for details.
 #' @param cluster cluster ID variable. See \code{rdrobust()} for details.
 #' @param level confidence level for confidence intervals. See \code{rdrobust()}
@@ -97,7 +97,7 @@
 
 rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
                  fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,pvec=NULL,qvec=NULL,
-                 hmat=NULL,bmat=NULL,rhovec=NULL,covsvec=NULL,
+                 hmat=NULL,bmat=NULL,rhovec=NULL,covs_mat=NULL,covs_list=NULL,
                  covs_dropvec=NULL,kernelvec=NULL,weightsvec=NULL,
                  bwselectvec=NULL,scaleparvec=NULL,scaleregulvec=NULL,
                  masspointsvec=NULL,bwcheckvec=NULL,bwrestrictvec=NULL,
@@ -146,6 +146,12 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
   if (is.null(masspointsvec)) masspointsvec <- rep('adjust',cnum)
   if (is.null(bwrestrictvec)) bwrestrictvec <- rep(TRUE,cnum)
   if (is.null(stdvarsvec)) stdvarsvec <- rep(FALSE,cnum)
+  if (!is.null(covs_mat)){
+    covs_mat <- as.matrix(covs_mat)
+    if (!is.null(covs_list)){
+      if (length(covs_list)!=cnum) stop('Elements in covs_list should equal number of cutoffs')
+    }
+  }
 
   B <- matrix(NA,nrow=1,ncol=cnum+1)
   V <- matrix(NA,nrow=1,ncol=cnum+1)
@@ -171,6 +177,17 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
       yc <- Y[xc>=Rc[c,1] & xc<=Rc[c,2]]
       xc <- xc[xc>=Rc[c,1] & xc<=Rc[c,2]]
 
+      if (!is.null(covs_mat)){
+        covs_mat_c <- covs_mat[xc>=Rc[c,1] & xc<=Rc[c,2],]
+        if (!is.null(covs_list)){
+          covs_aux <- covs_mat_c[,covs_list[[c]]]
+        } else{
+          covs_aux <- covs_mat_c
+        }
+      } else {
+        covs_aux <- NULL
+      }
+
       rdr.tmp <- rdrobust::rdrobust(yc,xc,
                                    fuzzy=fuzzy,
                                    deriv=derivvec[c],
@@ -179,7 +196,7 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
                                    h=hmat[c,],
                                    b=bmat[c,],
                                    rho=rhovec[c],
-                                   covs=covsvec[c],
+                                   covs=covs_aux,
                                    covs_drop=covs_dropvec[c],
                                    kernel=kernelvec[c],
                                    weights=weightsvec[c],
@@ -216,6 +233,17 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
       yc <- Y[xc>=rangemat[c,1] & xc<=rangemat[c,2]]
       xc <- xc[xc>=rangemat[c,1] & xc<=rangemat[c,2]]
 
+      if (!is.null(covs_mat)){
+        covs_mat_c <- covs_mat[xc>=rangemat[c,1] & xc<=rangemat[c,2],]
+        if (!is.null(covs_list)){
+          covs_aux <- covs_mat_c[,covs_list[[c]]]
+        } else{
+          covs_aux <- covs_mat_c
+        }
+      } else {
+        covs_aux <- NULL
+      }
+
       rdr.tmp <- rdrobust::rdrobust(yc,xc,
                                    fuzzy=fuzzy,
                                    deriv=derivvec[c],
@@ -224,7 +252,7 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
                                    h=hmat[c,],
                                    b=bmat[c,],
                                    rho=rhovec[c],
-                                   covs=covsvec[c],
+                                   covs=covs_aux,
                                    covs_drop=covs_dropvec[c],
                                    kernel=kernelvec[c],
                                    weights=weightsvec[c],
