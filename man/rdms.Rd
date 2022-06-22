@@ -37,7 +37,8 @@ rdms(
   nnmatchvec = NULL,
   cluster = NULL,
   level = 95,
-  plot = FALSE
+  plot = FALSE,
+  conventional = FALSE
 )
 }
 \arguments{
@@ -127,6 +128,9 @@ estimation. See \code{rdrobust()} for details.}
 for details.}
 
 \item{plot}{plots cutoff-specific and pooled estimates.}
+
+\item{conventional}{reports conventional, instead of robust-bias corrected,
+p-values and confidence intervals.}
 }
 \value{
 \item{B}{vector of bias-corrected coefficients}

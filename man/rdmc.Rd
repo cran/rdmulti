@@ -33,7 +33,8 @@ rdmc(
   nnmatchvec = NULL,
   cluster = NULL,
   level = 95,
-  plot = FALSE
+  plot = FALSE,
+  conventional = FALSE
 )
 }
 \arguments{
@@ -108,7 +109,7 @@ each cutoff. See \code{rdrobust()} for details.}
 \item{vcevec}{vector of cutoff-specific variance-covariance estimation
 methods. See \code{rdrobust()} for details.}
 
-\item{nnmatchvec}{vector of cutoff-specific nearestneighbors for variance
+\item{nnmatchvec}{vector of cutoff-specific nearest neighbors for variance
 estimation. See \code{rdrobust()} for details.}
 
 \item{cluster}{cluster ID variable. See \code{rdrobust()} for details.}
@@ -117,6 +118,9 @@ estimation. See \code{rdrobust()} for details.}
 for details.}
 
 \item{plot}{plots cutoff-specific estimates and weights.}
+
+\item{conventional}{reports conventional, instead of robust-bias corrected,
+p-values and confidence intervals.}
 }
 \value{
 \item{tau}{pooled estimate}

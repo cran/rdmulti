@@ -1,6 +1,6 @@
 ###################################################################
 # rdms: analysis of RD designs with multiple scores
-# !version 0.8 19-May-2021
+# !version 0.9 20-Jun-2022
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -75,6 +75,8 @@
 #' @param level confidence level for confidence intervals. See \code{rdrobust()}
 #'   for details.
 #' @param plot plots cutoff-specific and pooled estimates.
+#' @param conventional reports conventional, instead of robust-bias corrected,
+#'   p-values and confidence intervals.
 #'
 #'
 #' @return \item{B}{vector of bias-corrected coefficients}
@@ -102,7 +104,7 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
                  bwselectvec=NULL,scaleparvec=NULL,scaleregulvec=NULL,
                  masspointsvec=NULL,bwcheckvec=NULL,bwrestrictvec=NULL,
                  stdvarsvec=NULL,vcevec=NULL,nnmatchvec=NULL,cluster=NULL,
-                 level=95,plot=FALSE){
+                 level=95,plot=FALSE,conventional=FALSE){
 
   #################################################################
   # Setup and error checking
@@ -156,10 +158,14 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
   B <- matrix(NA,nrow=1,ncol=cnum+1)
   V <- matrix(NA,nrow=1,ncol=cnum+1)
   Coefs <- matrix(NA,nrow=1,ncol=cnum+1)
+  V_cl <- matrix(NA,nrow=1,ncol=cnum+1)
   Nh <- matrix(NA,nrow=2,ncol=cnum+1)
   CI <- matrix(NA,nrow=2,ncol=cnum+1)
+  CI_cl <- matrix(NA,nrow=2,ncol=cnum+1)
   Pv <- matrix(NA,nrow=1,ncol=cnum+1)
+  Pv_cl <- matrix(NA,nrow=1,ncol=cnum+1)
   H <- matrix(NA,nrow=2,ncol=cnum+1)
+  Bbw <- matrix(NA,nrow=2,ncol=cnum+1)
 
   c.disp <- NULL
 
@@ -176,6 +182,14 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
 
       yc <- Y[xc>=Rc[c,1] & xc<=Rc[c,2]]
       xc <- xc[xc>=Rc[c,1] & xc<=Rc[c,2]]
+
+      if (!is.null(weightsvec)){
+        weightaux <- weightsvec[c]
+        weightsc <- paste0("weightsc <- ",weightaux,"[xc>=Rc[c,1] & xc<=Rc[c,2]]")
+        weightsc <- eval(parse(text=weightsc))
+      } else{
+        weightsc = NULL
+      }
 
       if (!is.null(covs_mat)){
         covs_mat_c <- covs_mat[xc>=Rc[c,1] & xc<=Rc[c,2],]
@@ -199,7 +213,7 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
                                    covs=covs_aux,
                                    covs_drop=covs_dropvec[c],
                                    kernel=kernelvec[c],
-                                   weights=weightsvec[c],
+                                   weights=weightsc,
                                    bwselect=bwselectvec[c],
                                    scalepar=scaleparvec[c],
                                    scaleregul=scaleregulvec[c],
@@ -215,10 +229,14 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
       B[1,c] <- rdr.tmp$Estimate[2]
       V[1,c] <- rdr.tmp$se[3]^2
       Coefs[1,c] <- rdr.tmp$Estimate[1]
+      V_cl[1,c] <- rdr.tmp$se[1]^2
       CI[,c] <- rdr.tmp$ci[3,]
+      CI_cl[,c] <- rdr.tmp$ci[1,]
       H[,c] <- rdr.tmp$bws[1,]
+      Bbw[,c] <- rdr.tmp$bws[2,]
       Nh[,c] <- rdr.tmp$N_h
       Pv[1,c] <- rdr.tmp$pv[3]
+      Pv_cl[1,c] <- rdr.tmp$pv[1]
 
       c.disp <- c(c.disp,round(C[c],2))
 
@@ -232,6 +250,14 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
 
       yc <- Y[xc>=rangemat[c,1] & xc<=rangemat[c,2]]
       xc <- xc[xc>=rangemat[c,1] & xc<=rangemat[c,2]]
+
+      if (!is.null(weightsvec)){
+        weightaux <- weightsvec[c]
+        weightsc <- paste0("weightsc <- ",weightaux,"[xc>=rangemat[c,1] & xc<=rangemat[c,2]]")
+        weightsc <- eval(parse(text=weightsc))
+      } else{
+        weightsc = NULL
+      }
 
       if (!is.null(covs_mat)){
         covs_mat_c <- covs_mat[xc>=rangemat[c,1] & xc<=rangemat[c,2],]
@@ -255,7 +281,7 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
                                    covs=covs_aux,
                                    covs_drop=covs_dropvec[c],
                                    kernel=kernelvec[c],
-                                   weights=weightsvec[c],
+                                   weights=weightsc,
                                    bwselect=bwselectvec[c],
                                    scalepar=scaleparvec[c],
                                    scaleregul=scaleregulvec[c],
@@ -271,10 +297,14 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
       B[1,c] <- rdr.tmp$Estimate[2]
       V[1,c] <- rdr.tmp$se[3]^2
       Coefs[1,c] <- rdr.tmp$Estimate[1]
+      V_cl[1,c] <- rdr.tmp$se[1]^2
       CI[,c] <- rdr.tmp$ci[3,]
+      CI_cl[,c] <- rdr.tmp$ci[1,]
       H[,c] <- rdr.tmp$bws[1,]
+      Bbw[,c] <- rdr.tmp$bws[2,]
       Nh[,c] <- rdr.tmp$N_h
       Pv[1,c] <- rdr.tmp$pv[3]
+      Pv_cl[1,c] <- rdr.tmp$pv[1]
 
       c.disp <- c(c.disp,paste0('(',round(C[c],2),',',round(C2[c],2),')'))
 
@@ -296,10 +326,14 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
     B[1,cnum+1] <- rdr$Estimate[2]
     V[1,cnum+1] <- rdr$se[3]^2
     Coefs[1,cnum+1] <- rdr$Estimate[1]
+    V_cl[1,cnum+1] <- rdr$se[1]^2
     CI[,cnum+1] <- rdr$ci[3,]
+    CI_cl[,cnum+1] <- rdr$ci[1,]
     H[,cnum+1] <- rdr$bws[1,]
+    Bbw[,cnum+1] <- rdr$bws[2,]
     Nh[,cnum+1] <- rdr$N_h
     Pv[1,cnum+1] <- rdr$pv[3]
+    Pv_cl[1,cnum+1] <- rdr$pv[1]
 
   }
 
@@ -319,35 +353,68 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
   cat(format('Nh',      width=10)); cat('\n')
   cat(paste0(rep('=',80),collapse='')); cat('\n')
 
-  for (k in 1:cnum){
-    if (is.null(C2)){
-      cat(format(sprintf('%4.2f',c.disp[k]),       width=17))
-    } else {
-      cat(paste0('(',format(sprintf('%4.2f',C[k])),',',format(sprintf('%4.2f',C2[k])),format(')',width=5)))
+  if(conventional==FALSE){
+    for (k in 1:cnum){
+      if (is.null(C2)){
+        cat(format(sprintf('%4.2f',c.disp[k]),       width=17))
+      } else {
+        cat(paste0('(',format(sprintf('%4.2f',C[k])),',',format(sprintf('%4.2f',C2[k])),format(')',width=5)))
+      }
+      cat(format(sprintf('%7.3f',Coefs[k]),        width=10))
+      cat(format(sprintf('%1.3f',Pv[k]),           width=10))
+      cat(format(sprintf('%4.3f',CI[1,k]),         width=10))
+      cat(format(sprintf('%4.3f',CI[2,k]),         width=10))
+      cat(format(sprintf('%4.3f',H[1,k]),          width=9))
+      cat(format(sprintf('%4.3f',H[2,k]),          width=10))
+      cat(format(sprintf('%4.0f',Nh[1,k]+Nh[2,k]), width=10))
+      cat('\n')
     }
-    cat(format(sprintf('%7.3f',Coefs[k]),        width=10))
-    cat(format(sprintf('%1.3f',Pv[k]),           width=10))
-    cat(format(sprintf('%4.3f',CI[1,k]),         width=10))
-    cat(format(sprintf('%4.3f',CI[2,k]),         width=10))
-    cat(format(sprintf('%4.3f',H[1,k]),          width=9))
-    cat(format(sprintf('%4.3f',H[2,k]),          width=10))
-    cat(format(sprintf('%4.0f',Nh[1,k]+Nh[2,k]), width=10))
-    cat('\n')
+
+    if (!is.null(xnorm)){
+      cat(paste0(rep('-',80),collapse='')); cat('\n')
+      cat(format('Pooled',                                   width=17))
+      cat(format(sprintf('%7.3f',Coefs[cnum+1]),             width=10))
+      cat(format(sprintf('%1.3f',Pv[cnum+1]),                width=10))
+      cat(format(sprintf('%4.3f',CI[1,cnum+1]),              width=10))
+      cat(format(sprintf('%4.3f',CI[2,cnum+1]),              width=10))
+      cat(format(sprintf('%4.3f',H[1,cnum+1]),               width=9))
+      cat(format(sprintf('%4.3f',H[2,cnum+1]),               width=10))
+      cat(format(sprintf('%4.0f',Nh[1,cnum+1]+Nh[2,cnum+1]), width=10))
+
+      cat('\n')
+    }
+  } else{
+    for (k in 1:cnum){
+      if (is.null(C2)){
+        cat(format(sprintf('%4.2f',c.disp[k]),       width=17))
+      } else {
+        cat(paste0('(',format(sprintf('%4.2f',C[k])),',',format(sprintf('%4.2f',C2[k])),format(')',width=5)))
+      }
+      cat(format(sprintf('%7.3f',Coefs[k]),        width=10))
+      cat(format(sprintf('%1.3f',Pv_cl[k]),           width=10))
+      cat(format(sprintf('%4.3f',CI_cl[1,k]),         width=10))
+      cat(format(sprintf('%4.3f',CI_cl[2,k]),         width=10))
+      cat(format(sprintf('%4.3f',H[1,k]),          width=9))
+      cat(format(sprintf('%4.3f',H[2,k]),          width=10))
+      cat(format(sprintf('%4.0f',Nh[1,k]+Nh[2,k]), width=10))
+      cat('\n')
+    }
+
+    if (!is.null(xnorm)){
+      cat(paste0(rep('-',80),collapse='')); cat('\n')
+      cat(format('Pooled',                                   width=17))
+      cat(format(sprintf('%7.3f',Coefs[cnum+1]),             width=10))
+      cat(format(sprintf('%1.3f',Pv_cl[cnum+1]),                width=10))
+      cat(format(sprintf('%4.3f',CI_cl[1,cnum+1]),              width=10))
+      cat(format(sprintf('%4.3f',CI_cl[2,cnum+1]),              width=10))
+      cat(format(sprintf('%4.3f',H[1,cnum+1]),               width=9))
+      cat(format(sprintf('%4.3f',H[2,cnum+1]),               width=10))
+      cat(format(sprintf('%4.0f',Nh[1,cnum+1]+Nh[2,cnum+1]), width=10))
+
+      cat('\n')
+    }
   }
 
-  if (!is.null(xnorm)){
-    cat(paste0(rep('-',80),collapse='')); cat('\n')
-    cat(format('Pooled',                                   width=17))
-    cat(format(sprintf('%7.3f',Coefs[cnum+1]),             width=10))
-    cat(format(sprintf('%1.3f',Pv[cnum+1]),                width=10))
-    cat(format(sprintf('%4.3f',CI[1,cnum+1]),              width=10))
-    cat(format(sprintf('%4.3f',CI[2,cnum+1]),              width=10))
-    cat(format(sprintf('%4.3f',H[1,cnum+1]),               width=9))
-    cat(format(sprintf('%4.3f',H[2,cnum+1]),               width=10))
-    cat(format(sprintf('%4.0f',Nh[1,cnum+1]+Nh[2,cnum+1]), width=10))
-
-    cat('\n')
-  }
   cat(paste0(rep('=',80),collapse='')); cat('\n')
 
 
@@ -369,10 +436,14 @@ rdms <- function(Y,X,C,X2=NULL,zvar=NULL,C2=NULL,rangemat=NULL,xnorm=NULL,
   output <- list(B = B,
                 V = V,
                 Coefs = Coefs,
+                V_cl = V_cl,
                 Nh = Nh,
                 CI = CI,
+                CI_cl = CI_cl,
                 H = H,
-                Pv = Pv)
+                Bbw = Bbw,
+                Pv = Pv,
+                Pv_cl = Pv_cl)
 
   return(output)
 

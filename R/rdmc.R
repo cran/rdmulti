@@ -1,6 +1,6 @@
 ###################################################################
 # rdmc: analysis of RD designs with multiple cutoffs
-# !version 0.8 19-May-2021
+# !version 0.9 20-June-2022
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -67,12 +67,14 @@
 #'   each cutoff. See \code{rdrobust()} for details.
 #' @param vcevec vector of cutoff-specific variance-covariance estimation
 #'   methods. See \code{rdrobust()} for details.
-#' @param nnmatchvec vector of cutoff-specific nearestneighbors for variance
+#' @param nnmatchvec vector of cutoff-specific nearest neighbors for variance
 #'   estimation. See \code{rdrobust()} for details.
 #' @param cluster cluster ID variable. See \code{rdrobust()} for details.
 #' @param level confidence level for confidence intervals. See \code{rdrobust()}
 #'   for details.
 #' @param plot plots cutoff-specific estimates and weights.
+#' @param conventional reports conventional, instead of robust-bias corrected,
+#'   p-values and confidence intervals.
 #'
 #'
 #' @return
@@ -114,7 +116,7 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
                 bwselectvec=NULL,scaleparvec=NULL,scaleregulvec=NULL,
                 masspointsvec=NULL,bwcheckvec=NULL,bwrestrictvec=NULL,
                 stdvarsvec=NULL,vcevec=NULL,nnmatchvec=NULL,cluster=NULL,
-                level=95,plot=FALSE){
+                level=95,plot=FALSE,conventional=FALSE){
 
   #################################################################
   # Setup and error checking
@@ -157,11 +159,15 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
 
   B <- matrix(NA,nrow=1,ncol=cnum+2)
   V <- matrix(NA,nrow=1,ncol=cnum+2)
+  V_cl <- matrix(NA,nrow=1,ncol=cnum+2)
   Coefs <- matrix(NA,nrow=1,ncol=cnum+2)
   Nh <- matrix(NA,nrow=2,ncol=cnum+2)
   CI <- matrix(NA,nrow=2,ncol=cnum+2)
+  CI_cl <- matrix(NA,nrow=2,ncol=cnum+2)
   Pv <- matrix(NA,nrow=1,ncol=cnum+2)
+  Pv_cl <- matrix(NA,nrow=1,ncol=cnum+2)
   H <- matrix(NA,nrow=2,ncol=cnum+2)
+  Bbw <- matrix(NA,nrow=2,ncol=cnum+2)
   W <- matrix(NA,nrow=1,ncol=cnum)
   Cfail <- numeric()
 
@@ -181,10 +187,14 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
   B[1,cnum+2] <- rdr$Estimate[2]
   V[1,cnum+2] <- rdr$se[3]^2
   Coefs[1,cnum+2] <- rdr$Estimate[1]
+  V_cl[1,cnum+2] <- rdr$se[1]^2
   CI[,cnum+2] <- rdr$ci[3,]
+  CI_cl[,cnum+2] <- rdr$ci[1,]
   H[,cnum+2] <- rdr$bws[1,]
+  Bbw[,cnum+2] <- rdr$bws[2,]
   Nh[,cnum+2] <- rdr$N_h
   Pv[1,cnum+2] <- rdr$pv[3]
+  Pv_cl[1,cnum+2] <- rdr$pv[1]
 
   #################################################################
   # Calculate cutoff-specific estimates and weights
@@ -196,6 +206,14 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
 
     yc <- Y[abs(C-c)<=.Machine$double.eps]
     xc <- Xc[abs(C-c)<=.Machine$double.eps]
+
+    if (!is.null(weightsvec)){
+      weightaux <- weightsvec[count]
+      weightsc <- paste0("weightsc <- ",weightaux,"[abs(C-c)<=.Machine$double.eps]")
+      weightsc <- eval(parse(text=weightsc))
+    } else{
+      weightsc = NULL
+    }
 
     if (!is.null(covs_mat)){
       covs_mat_c <- covs_mat[abs(C-c)<=.Machine$double.eps,]
@@ -219,7 +237,7 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
                                       covs=covs_aux,
                                       covs_drop=covs_dropvec[count],
                                       kernel=kernelvec[count],
-                                      weights=weightsvec[count],
+                                      weights=weightsc,
                                       bwselect=bwselectvec[count],
                                       scalepar=scaleparvec[count],
                                       scaleregul=scaleregulvec[count],
@@ -233,14 +251,18 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
                                       level=level),
                    silent=TRUE)
 
-    if (class(rdr.tmp)!="try-error"){
+    if (!inherits(rdr.tmp,"try-error")){
       B[1,count] <- rdr.tmp$Estimate[2]
       V[1,count] <- rdr.tmp$se[3]^2
       Coefs[1,count] <- rdr.tmp$Estimate[1]
+      V_cl[1,count] <- rdr.tmp$se[1]^2
       CI[,count] <- rdr.tmp$ci[3,]
+      CI_cl[,count] <- rdr.tmp$ci[1,]
       H[,count] <- rdr.tmp$bws[1,]
+      Bbw[,count] <- rdr.tmp$bws[2,]
       Nh[,count] <- rdr.tmp$N_h
       Pv[1,count] <- rdr.tmp$pv[3]
+      Pv_cl[1,count] <- rdr.tmp$pv[1]
     } else{
       Cfail <- c(Cfail,c)
       count_fail <- count_fail + 1
@@ -260,19 +282,26 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
   Baux <- B
   Vaux <- V
   Coefsaux <- Coefs
+  Vaux_cl <- V_cl
   Baux[is.na(Baux)] <- 0
   Vaux[is.na(Vaux)] <- 0
   Coefsaux[is.na(Coefsaux)] <- 0
+  Vaux_cl[is.na(Vaux_cl)] <- 0
 
   B[1,cnum+1] <- Baux[1,1:cnum]%*%t(W)
   V[1,cnum+1] <- Vaux[1,1:cnum]%*%t(W^2)
   Coefs[1,cnum+1] <- Coefsaux[1,1:cnum]%*%t(W)
+  V_cl[1,cnum+1] <- Vaux_cl[1,1:cnum]%*%t(W^2)
 
   Nh[,cnum+1] <- rowSums(Nh[,1:cnum],na.rm=TRUE)
 
   CI[1,cnum+1] <- B[1,cnum+1]-sqrt(V[1,cnum+1])*qnorm(1-(1-level/100)/2)
   CI[2,cnum+1] <- B[1,cnum+1]+sqrt(V[1,cnum+1])*qnorm(1-(1-level/100)/2)
   Pv[1,cnum+1] <- 2*(1-pnorm(abs(B[1,cnum+1]/sqrt(V[1,cnum+1]))))
+
+  CI_cl[1,cnum+1] <- Coefs[1,cnum+1]-sqrt(V_cl[1,cnum+1])*qnorm(1-(1-level/100)/2)
+  CI_cl[2,cnum+1] <- Coefs[1,cnum+1]+sqrt(V_cl[1,cnum+1])*qnorm(1-(1-level/100)/2)
+  Pv_cl[1,cnum+1] <- 2*(1-pnorm(abs(Coefs[1,cnum+1]/sqrt(V_cl[1,cnum+1]))))
 
   #################################################################
   # Display results
@@ -283,56 +312,111 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
     cat('\n')
   }
 
-  cat('\n')
-  cat(paste0(rep('=',80),collapse='')); cat('\n')
-  cat(format('Cutoff',  width=11))
-  cat(format('Coef.',   width=8))
-  cat(format('P-value', width=16))
-  cat(format('95% CI',  width=16))
-  cat(format('hl',      width=9))
-  cat(format('hr',      width=9))
-  cat(format('Nh',      width=5))
-  cat(format('Weight',  width=5))
-  cat('\n')
-  cat(paste0(rep('=',80),collapse=''))
-  cat('\n')
-
-  for (k in 1:cnum){
-    cat(format(sprintf('%4.3f',clist[k]),        width=11))
-    cat(format(sprintf('%7.3f',Coefs[k]),        width=9))
-    cat(format(sprintf('%1.3f',Pv[k]),           width=9))
-    cat(format(sprintf('%4.3f',CI[1,k]),         width=10))
-    cat(format(sprintf('%4.3f',CI[2,k]),         width=10))
-    cat(format(sprintf('%4.3f',H[1,k]),          width=9))
-    cat(format(sprintf('%4.3f',H[2,k]),          width=9))
-    cat(format(sprintf('%4.0f',Nh[1,k]+Nh[2,k]), width=8))
-    cat(format(sprintf('%1.3f',W[k]),            width=5))
+  if (conventional==FALSE){
     cat('\n')
+    cat('Cutoff-specific RD estimation with robust bias-corrected inference'); cat('\n')
+    cat(paste0(rep('=',80),collapse='')); cat('\n')
+    cat(format('Cutoff',  width=11))
+    cat(format('Coef.',   width=8))
+    cat(format('P-value', width=16))
+    cat(format('95% CI',  width=16))
+    cat(format('hl',      width=9))
+    cat(format('hr',      width=9))
+    cat(format('Nh',      width=5))
+    cat(format('Weight',  width=5))
+    cat('\n')
+    cat(paste0(rep('=',80),collapse=''))
+    cat('\n')
+
+    for (k in 1:cnum){
+      cat(format(sprintf('%4.3f',clist[k]),        width=11))
+      cat(format(sprintf('%7.3f',Coefs[k]),        width=9))
+      cat(format(sprintf('%1.3f',Pv[k]),           width=9))
+      cat(format(sprintf('%4.3f',CI[1,k]),         width=10))
+      cat(format(sprintf('%4.3f',CI[2,k]),         width=10))
+      cat(format(sprintf('%4.3f',H[1,k]),          width=9))
+      cat(format(sprintf('%4.3f',H[2,k]),          width=9))
+      cat(format(sprintf('%4.0f',Nh[1,k]+Nh[2,k]), width=8))
+      cat(format(sprintf('%1.3f',W[k]),            width=5))
+      cat('\n')
+    }
+    cat(paste0(rep('-',80),collapse='')); cat('\n')
+
+    cat(format('Weighted',                                 width=11))
+    cat(format(sprintf('%7.3f',Coefs[1,cnum+1]),           width=9))
+    cat(format(sprintf('%1.3f',Pv[1,cnum+1]),              width=9))
+    cat(format(sprintf('%4.3f',CI[1,cnum+1]),              width=10))
+    cat(format(sprintf('%4.3f',CI[2,cnum+1]),              width=13))
+    cat(format('  .',                                      width=9))
+    cat(format('  .',                                      width=6))
+    cat(format(sprintf('%4.0f',Nh[1,cnum+1]+Nh[2,cnum+1]), width=11))
+    cat(format(' .',                                       width=5))
+    cat('\n')
+
+    cat(format('Pooled',                                   width=11))
+    cat(format(sprintf('%7.3f',Coefs[cnum+2]),             width=9))
+    cat(format(sprintf('%1.3f',Pv[cnum+2]),                width=9))
+    cat(format(sprintf('%4.3f',CI[1,cnum+2]),              width=10))
+    cat(format(sprintf('%4.3f',CI[2,cnum+2]),              width=10))
+    cat(format(sprintf('%4.3f',H[1,cnum+2]),               width=9))
+    cat(format(sprintf('%4.3f',H[2,cnum+2]),               width=9))
+    cat(format(sprintf('%4.0f',Nh[1,cnum+2]+Nh[2,cnum+2]), width=11))
+    cat(format(' .',                                       width=5))
+    cat('\n')
+    cat(paste0(rep('=',80),collapse='')); cat('\n')
+  } else{
+    cat('\n')
+    cat('Cutoff-specific RD estimation with conventional inference'); cat('\n')
+    cat(paste0(rep('=',80),collapse='')); cat('\n')
+    cat(format('Cutoff',  width=11))
+    cat(format('Coef.',   width=8))
+    cat(format('P-value', width=16))
+    cat(format('95% CI',  width=16))
+    cat(format('hl',      width=9))
+    cat(format('hr',      width=9))
+    cat(format('Nh',      width=5))
+    cat(format('Weight',  width=5))
+    cat('\n')
+    cat(paste0(rep('=',80),collapse=''))
+    cat('\n')
+
+    for (k in 1:cnum){
+      cat(format(sprintf('%4.3f',clist[k]),        width=11))
+      cat(format(sprintf('%7.3f',Coefs[k]),        width=9))
+      cat(format(sprintf('%1.3f',Pv_cl[k]),           width=9))
+      cat(format(sprintf('%4.3f',CI_cl[1,k]),         width=10))
+      cat(format(sprintf('%4.3f',CI_cl[2,k]),         width=10))
+      cat(format(sprintf('%4.3f',H[1,k]),          width=9))
+      cat(format(sprintf('%4.3f',H[2,k]),          width=9))
+      cat(format(sprintf('%4.0f',Nh[1,k]+Nh[2,k]), width=8))
+      cat(format(sprintf('%1.3f',W[k]),            width=5))
+      cat('\n')
+    }
+    cat(paste0(rep('-',80),collapse='')); cat('\n')
+
+    cat(format('Weighted',                                 width=11))
+    cat(format(sprintf('%7.3f',Coefs[1,cnum+1]),           width=9))
+    cat(format(sprintf('%1.3f',Pv_cl[1,cnum+1]),              width=9))
+    cat(format(sprintf('%4.3f',CI_cl[1,cnum+1]),              width=10))
+    cat(format(sprintf('%4.3f',CI_cl[2,cnum+1]),              width=13))
+    cat(format('  .',                                      width=9))
+    cat(format('  .',                                      width=6))
+    cat(format(sprintf('%4.0f',Nh[1,cnum+1]+Nh[2,cnum+1]), width=11))
+    cat(format(' .',                                       width=5))
+    cat('\n')
+
+    cat(format('Pooled',                                   width=11))
+    cat(format(sprintf('%7.3f',Coefs[cnum+2]),             width=9))
+    cat(format(sprintf('%1.3f',Pv_cl[cnum+2]),                width=9))
+    cat(format(sprintf('%4.3f',CI_cl[1,cnum+2]),              width=10))
+    cat(format(sprintf('%4.3f',CI_cl[2,cnum+2]),              width=10))
+    cat(format(sprintf('%4.3f',H[1,cnum+2]),               width=9))
+    cat(format(sprintf('%4.3f',H[2,cnum+2]),               width=9))
+    cat(format(sprintf('%4.0f',Nh[1,cnum+2]+Nh[2,cnum+2]), width=11))
+    cat(format(' .',                                       width=5))
+    cat('\n')
+    cat(paste0(rep('=',80),collapse='')); cat('\n')
   }
-  cat(paste0(rep('-',80),collapse='')); cat('\n')
-
-  cat(format('Weighted',                                 width=11))
-  cat(format(sprintf('%7.3f',Coefs[1,cnum+1]),           width=9))
-  cat(format(sprintf('%1.3f',Pv[1,cnum+1]),              width=9))
-  cat(format(sprintf('%4.3f',CI[1,cnum+1]),              width=10))
-  cat(format(sprintf('%4.3f',CI[2,cnum+1]),              width=13))
-  cat(format('  .',                                      width=9))
-  cat(format('  .',                                      width=6))
-  cat(format(sprintf('%4.0f',Nh[1,cnum+1]+Nh[2,cnum+1]), width=11))
-  cat(format(' .',                                       width=5))
-  cat('\n')
-
-  cat(format('Pooled',                                   width=11))
-  cat(format(sprintf('%7.3f',Coefs[cnum+2]),             width=9))
-  cat(format(sprintf('%1.3f',Pv[cnum+2]),                width=9))
-  cat(format(sprintf('%4.3f',CI[1,cnum+2]),              width=10))
-  cat(format(sprintf('%4.3f',CI[2,cnum+2]),              width=10))
-  cat(format(sprintf('%4.3f',H[1,cnum+2]),               width=9))
-  cat(format(sprintf('%4.3f',H[2,cnum+2]),               width=9))
-  cat(format(sprintf('%4.0f',Nh[1,cnum+2]+Nh[2,cnum+2]), width=11))
-  cat(format(' .',                                       width=5))
-  cat('\n')
-  cat(paste0(rep('=',80),collapse='')); cat('\n')
 
   if (count_fail>0){
     warning("rdrobust() could not run in one or more cutoffs.")
@@ -356,7 +440,13 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
     polygon(x=c(min(clist),min(clist),max(clist),max(clist)),y=c(CI[1,cnum+1],CI[2,cnum+1],CI[2,cnum+1],CI[1,cnum+1]),
             border = NA,col=rgb(139/255,0,0,0.2))
     points(clist,Coefs[1:cnum],col='darkblue',pch=16)
-    arrows(clist,CI[1,1:cnum],clist,CI[2,1:cnum],length=0.05,angle=90,code=3)
+
+    if (conventional==FALSE){
+      arrows(clist,CI[1,1:cnum],clist,CI[2,1:cnum],length=0.05,angle=90,code=3)
+    } else{
+      arrows(clist,CI_cl[1,1:cnum],clist,CI_cl[2,1:cnum],length=0.05,angle=90,code=3)
+    }
+
     abline(h=Coefs[1,cnum+2],col='gray34')
     abline(h=Coefs[1,cnum+1],col='darkred')
     abline(h=0,lty='dotted')
@@ -378,9 +468,12 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
   colnames(V) <- c(1:cnum,"weighted","pooled")
   colnames(Coefs) <- c(1:cnum,"weighted","pooled")
   colnames(CI) <- c(1:cnum,"weighted","pooled")
+  colnames(CI_cl) <- c(1:cnum,"weighted","pooled")
   colnames(Nh) <- c(1:cnum,"weighted","pooled")
   colnames(H) <- c(1:cnum,"weighted","pooled")
+  colnames(Bbw) <- c(1:cnum,"weighted","pooled")
   colnames(Pv) <- c(1:cnum,"weighted","pooled")
+  colnames(Pv_cl) <- c(1:cnum,"weighted","pooled")
 
   rownames(Nh) <- c("left","right")
   rownames(H) <- c("left","right")
@@ -397,11 +490,15 @@ rdmc <- function(Y,X,C,fuzzy=NULL,derivvec=NULL,pooled_opt=NULL,verbose=FALSE,
                 B = B,
                 V = V,
                 Coefs = Coefs,
+                V_cl = V_cl,
                 W = W,
                 Nh = Nh,
                 CI = CI,
+                CI_cl = CI_cl,
                 H = H,
+                Bbw = Bbw,
                 Pv = Pv,
+                Pv_cl = Pv_cl,
                 rdrobust.results = rdr,
                 cfail = Cfail)
 

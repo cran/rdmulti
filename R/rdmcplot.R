@@ -1,6 +1,6 @@
 ###################################################################
 # rdmcplot: RD plots with multiple cutoffs
-# !version 0.8 19-May-2021
+# !version 0.9 20-Jun-2022
 # Authors: Matias Cattaneo, Rocio Titiunik, Gonzalo Vazquez-Bare
 ###################################################################
 
@@ -186,7 +186,7 @@ rdmcplot <- function(Y,X,C,nbinsmat=NULL,binselectvec=NULL,scalevec=NULL,
                                 hide=TRUE),
                silent=TRUE)
 
-    if (class(aux)!="try-error"){
+    if (!inherits(aux,"try-error")){
       xmean <- aux$vars_bins[,2]
       ymean <- aux$vars_bins[,3]
 
