@@ -1,10 +1,10 @@
-a688b3c996d7472964d89d631c4fd6e0 *DESCRIPTION
+615611412972567ec1b73b7faf4ba7ff *DESCRIPTION
 51d4c279d304a4efc5bebfbde33f34bd *NAMESPACE
-a61e96fc1f642de88668da12fc2f80d7 *R/rdmc.R
-5d18ff87e46af81d928ce53ef39f8edb *R/rdmcplot.R
-c2da46af8fb0e4ee8f3d3ce48630245f *R/rdms.R
-6f2b88b670b9ef9ea7dea791286399ff *R/rdmulti_package.R
+12422879eac546600077ac332208110d *R/rdmc.R
+7cf80e5e0e08b466b32d341ec8c6e0f3 *R/rdmcplot.R
+124a521faa737a0301e58a57387b02f0 *R/rdms.R
+52233eef28b7e5cb20f4a1f6fce0250e *R/rdmulti_package.R
 bfce3c72ee9e3358eeda89350a76bccb *man/rdmc.Rd
 b6835ab9de20883fc0abb349de944ebb *man/rdmcplot.Rd
 2af17743ab2b7510be02c89ca5554e62 *man/rdms.Rd
-3800db889af30bbd5916c6c76fd0da75 *man/rdmulti-package.Rd
+f9a98cb76ff494d5998f7e8c094da704 *man/rdmulti-package.Rd
